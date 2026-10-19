@@ -128,10 +128,12 @@ def create_app(kb: KnowledgeBase | None = None, settings: Settings | None = None
         database fails mid-way, an `error` event replaces `done`.
         """
         answer: list[str] = []
+        source_count = 0
         try:
             async for event in kb.astream_answer(body.question):
                 match event:
                     case SourcesFound(sources):
+                        source_count = len(sources)
                         data = [{**asdict(s), "location": s.location} for s in sources]
                         yield ServerSentEvent(event="sources", data=data)
                     case AnswerDelta(text):
@@ -150,7 +152,9 @@ def create_app(kb: KnowledgeBase | None = None, settings: Settings | None = None
             )
             return
 
-        cited = sorted({int(n) for n in re.findall(r"\[(\d+)\]", "".join(answer))})
+        # Small models sometimes cite a number that was never in the prompt.
+        numbers = {int(n) for n in re.findall(r"\[(\d+)\]", "".join(answer))}
+        cited = sorted(n for n in numbers if 1 <= n <= source_count)
         yield ServerSentEvent(event="done", data={"cited": cited})
 
     return app

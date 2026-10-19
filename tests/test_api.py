@@ -6,7 +6,7 @@ import httpx
 import ollama
 import pytest
 from fastapi.testclient import TestClient
-from llama_index.core.llms import MockLLM
+from llama_index.core.llms import ChatMessage, ChatResponse, MockLLM
 
 from docs_rag.api import create_app
 from docs_rag.config import Settings
@@ -126,6 +126,24 @@ def test_ask_reports_cited_sources(kb_with_llm, handbook: Path):
         events = parse_sse(client.post("/api/ask", json={"question": "annual leave"}).text)
 
     assert events[-1] == ("done", {"cited": [1, 2, 3]})
+
+
+def test_ask_ignores_citations_without_a_source(kb_with_llm, handbook: Path):
+    class MadeUpCitationLLM(MockLLM):
+        async def astream_chat(self, messages, **kwargs):
+            async def gen():
+                text = "Fourteen working days [1][9]."
+                yield ChatResponse(message=ChatMessage(role="assistant", content=text), delta=text)
+
+            return gen()
+
+    kb = kb_with_llm(MadeUpCitationLLM())
+    with TestClient(create_app(kb=kb, settings=Settings())) as client:
+        upload(client, handbook)
+        events = parse_sse(client.post("/api/ask", json={"question": "annual leave"}).text)
+
+    assert len(events[0][1]) < 9
+    assert events[-1] == ("done", {"cited": [1]})
 
 
 def test_ask_without_matches_says_so(client: TestClient, handbook: Path):
