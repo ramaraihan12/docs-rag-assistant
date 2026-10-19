@@ -33,6 +33,7 @@ dev = [
     "pytest>=9.1.1,<10",
     "httpx>=0.28.1,<0.29",
     "ruff>=0.17.1,<0.18",
+    "reportlab>=5.0.1,<6",
 ]
 
 [build-system]
