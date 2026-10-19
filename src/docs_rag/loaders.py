@@ -8,50 +8,76 @@ metadata onto each chunk, which is what lets an answer cite "manual.docx, page 4
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from zipfile import BadZipFile
 
 from docx import Document as open_docx
+from docx.opc.exceptions import PackageNotFoundError
 from docx.oxml.ns import qn
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 from llama_index.core import Document
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 SUPPORTED_SUFFIXES = {".pdf", ".md", ".markdown", ".txt", ".docx"}
 
 _MD_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 
 
-class UnsupportedFileType(ValueError):
+class DocumentError(ValueError):
+    """A file we can't turn into text. The message is fine to show to a user."""
+
+
+class UnsupportedFileType(DocumentError):
     pass
+
+
+class UnreadableFile(DocumentError):
+    pass
+
+
+class EmptyDocument(DocumentError):
+    """The file opened fine but has no text, for example a scanned PDF without OCR."""
 
 
 def load_file(path: Path, file_name: str | None = None) -> list[Document]:
     """Load one file. `file_name` overrides the name stored in metadata (used for uploads)."""
     name = file_name or path.name
     suffix = Path(name).suffix.lower()
-    match suffix:
-        case ".pdf":
-            parts = _pdf_pages(path)
-        case ".docx":
-            parts = _docx_parts(path)
-        case ".md" | ".markdown":
-            parts = _markdown_sections(path.read_text(encoding="utf-8"))
-        case ".txt":
-            parts = iter([(None, None, path.read_text(encoding="utf-8"))])
-        case _:
-            raise UnsupportedFileType(f"{suffix or 'files without an extension'} not supported")
+    if suffix not in SUPPORTED_SUFFIXES:
+        raise UnsupportedFileType(f"{suffix or 'files without an extension'} not supported")
 
     docs = []
-    for page, section, text in parts:
-        text = text.strip()
-        # Skip empty parts and headings that are directly followed by another heading.
-        if not text or text.lstrip("#").strip() == section:
-            continue
-        doc = Document(text=text, metadata={"file_name": name, "page": page, "section": section})
-        # Page numbers are noise for the embedding; file name and heading are useful signal.
-        doc.excluded_embed_metadata_keys = ["page"]
-        docs.append(doc)
+    try:
+        for page, section, text in _parts(path, suffix):
+            text = text.strip()
+            # Skip empty parts and headings that are directly followed by another heading.
+            if not text or text.lstrip("#").strip() == section:
+                continue
+            doc = Document(
+                text=text, metadata={"file_name": name, "page": page, "section": section}
+            )
+            # Page numbers are noise for the embedding; file name and heading are useful signal.
+            doc.excluded_embed_metadata_keys = ["page"]
+            docs.append(doc)
+    except (PdfReadError, BadZipFile, PackageNotFoundError, UnicodeDecodeError) as exc:
+        raise UnreadableFile(f"couldn't read {name}: {exc}") from exc
+
+    if not docs:
+        raise EmptyDocument(f"no text found in {name}")
     return docs
+
+
+def _parts(path: Path, suffix: str) -> Iterator[tuple[int | None, str | None, str]]:
+    match suffix:
+        case ".pdf":
+            return _pdf_pages(path)
+        case ".docx":
+            return _docx_parts(path)
+        case ".md" | ".markdown":
+            return _markdown_sections(path.read_text(encoding="utf-8"))
+        case _:
+            return iter([(None, None, path.read_text(encoding="utf-8"))])
 
 
 def _pdf_pages(path: Path) -> Iterator[tuple[int, None, str]]:

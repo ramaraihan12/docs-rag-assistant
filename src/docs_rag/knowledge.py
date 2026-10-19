@@ -21,10 +21,6 @@ from docs_rag.models import AnswerDelta, AnswerEvent, IngestResult, Source, Sour
 from docs_rag.prompts import build_messages, no_answer_message
 
 
-class EmptyDocument(ValueError):
-    """The file parsed fine but had no text in it (for example a scanned PDF)."""
-
-
 class KnowledgeBase:
     def __init__(
         self,
@@ -64,8 +60,6 @@ class KnowledgeBase:
             return IngestResult(name, existing.pages, existing.chunks, skipped=True)
 
         docs = load_file(path, file_name=name)
-        if not docs:
-            raise EmptyDocument(f"no text found in {name}")
 
         nodes = self._splitter.get_nodes_from_documents(docs)
         page_numbers = [doc.metadata["page"] for doc in docs if doc.metadata["page"] is not None]

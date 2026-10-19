@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from docx import Document as new_docx
 
-from docs_rag.loaders import UnsupportedFileType, load_file
+from docs_rag.loaders import UnreadableFile, UnsupportedFileType, load_file
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 
@@ -75,4 +75,12 @@ def test_rejects_unknown_extension(tmp_path: Path):
     path.write_bytes(b"not really a spreadsheet")
 
     with pytest.raises(UnsupportedFileType):
+        load_file(path)
+
+
+def test_broken_pdf_is_reported_as_unreadable(tmp_path: Path):
+    path = tmp_path / "broken.pdf"
+    path.write_bytes(b"%PDF-1.7 this is not really a pdf")
+
+    with pytest.raises(UnreadableFile):
         load_file(path)

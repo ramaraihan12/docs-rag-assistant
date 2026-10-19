@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from docs_rag.knowledge import EmptyDocument, KnowledgeBase
+from docs_rag.knowledge import KnowledgeBase
+from docs_rag.loaders import EmptyDocument
 from docs_rag.models import AnswerDelta, SourcesFound
 from docs_rag.prompts import NO_ANSWER
 
