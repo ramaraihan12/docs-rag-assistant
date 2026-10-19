@@ -32,7 +32,7 @@ class KnowledgeBase:
         chunk_size: int = 512,
         chunk_overlap: int = 64,
         top_k: int = 5,
-        similarity_cutoff: float = 0.45,
+        similarity_cutoff: float = 0.4,
     ) -> None:
         self._vector_store = vector_store
         self._catalog = catalog

@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     chunk_size: int = 512
     chunk_overlap: int = 64
     top_k: int = 5
-    similarity_cutoff: float = 0.45
+    similarity_cutoff: float = 0.4
     max_upload_mb: int = 20
 
 
