@@ -97,15 +97,18 @@ def create_app(kb: KnowledgeBase | None = None, settings: Settings | None = None
                 status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, f"Supported file types: {allowed}"
             )
 
+        # Starlette counts the bytes while it spools the upload, so this can be checked
+        # before copying the file anywhere.
+        if file.size is not None and file.size > max_upload_bytes:
+            raise HTTPException(
+                status.HTTP_413_CONTENT_TOO_LARGE,
+                f"Files can be up to {settings.max_upload_mb} MB",
+            )
+
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / name
             with path.open("wb") as out:
                 shutil.copyfileobj(file.file, out)
-            if path.stat().st_size > max_upload_bytes:
-                raise HTTPException(
-                    status.HTTP_413_CONTENT_TOO_LARGE,
-                    f"Files can be up to {settings.max_upload_mb} MB",
-                )
             try:
                 return kb.ingest_file(path)
             except DocumentError as exc:
