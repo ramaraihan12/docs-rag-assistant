@@ -1,11 +1,12 @@
 import hashlib
 import math
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 from llama_index.core.base.embeddings.base import BaseEmbedding
-from llama_index.core.llms import MockLLM
+from llama_index.core.llms import LLM, MockLLM
 from llama_index.core.vector_stores import SimpleVectorStore
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -52,18 +53,28 @@ def memory_catalog() -> Catalog:
     return Catalog(engine, "chunks_files")
 
 
-@pytest.fixture
-def kb() -> KnowledgeBase:
+def make_kb(llm: LLM | None = None) -> KnowledgeBase:
+    """An in-memory knowledge base: no Postgres, no model server."""
     return KnowledgeBase(
         vector_store=SimpleVectorStore(),
         catalog=memory_catalog(),
         embed_model=KeywordEmbedding(),
-        llm=MockLLM(max_tokens=8),
+        llm=llm or MockLLM(max_tokens=8),
         chunk_size=256,
         chunk_overlap=32,
         top_k=3,
         similarity_cutoff=0.2,
     )
+
+
+@pytest.fixture
+def kb() -> KnowledgeBase:
+    return make_kb()
+
+
+@pytest.fixture
+def kb_with_llm() -> Callable[[LLM], KnowledgeBase]:
+    return make_kb
 
 
 @pytest.fixture

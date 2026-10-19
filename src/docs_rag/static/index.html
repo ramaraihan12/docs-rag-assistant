@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docs RAG</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <header class="brand">
+        <h1>Docs RAG</h1>
+        <p>Answers from your own files, with the page they came from.</p>
+      </header>
+
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="file-input" accept=".pdf,.docx,.md,.markdown,.txt" multiple hidden>
+        <span class="dropzone-title">Add documents</span>
+        <span class="dropzone-hint">Drop PDF, DOCX or Markdown here, or <u>browse</u></span>
+      </label>
+      <p class="upload-status" id="upload-status" role="status"></p>
+
+      <section class="documents">
+        <h2>Indexed <span id="doc-count"></span></h2>
+        <ul id="doc-list"></ul>
+        <p class="empty-docs" id="empty-docs" hidden>Nothing indexed yet.</p>
+      </section>
+    </aside>
+
+    <main class="chat">
+      <div class="thread" id="thread" aria-live="polite">
+        <div class="intro" id="intro">
+          <h2>Ask something about your documents</h2>
+          <p>Answers cite their sources like <span class="cite cite-static">1</span>. Click a citation to read the passage it came from. If nothing relevant is found, it says so instead of guessing.</p>
+          <div class="examples" id="examples">
+            <button type="button">How many days of annual leave do I get?</button>
+            <button type="button">Apa arti lampu merah berkedip di sensor?</button>
+            <button type="button">Berapa batas hotel per malam di Jakarta?</button>
+            <button type="button">What does the T2 warranty not cover?</button>
+          </div>
+        </div>
+      </div>
+
+      <form class="composer" id="composer">
+        <textarea id="question" rows="1" placeholder="Ask in English or Bahasa Indonesia" required maxlength="2000"></textarea>
+        <button type="submit" id="send">Ask</button>
+      </form>
+    </main>
+  </div>
+
+  <template id="message-template">
+    <article class="message">
+      <p class="question"></p>
+      <div class="answer"><span class="typing">Searching your documents</span></div>
+      <div class="sources" hidden>
+        <h3>Sources</h3>
+        <ol class="source-list"></ol>
+        <button type="button" class="more-sources" hidden></button>
+      </div>
+    </article>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
