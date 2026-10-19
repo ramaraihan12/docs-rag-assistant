@@ -60,7 +60,7 @@ uv run docs-rag ingest samples
 uv run docs-rag serve
 ```
 
-Either way, open http://127.0.0.1:8000. Compose publishes Postgres on 5432, so stop any local Postgres first or change the port in `docker-compose.yml` and `DATABASE_URL`.
+Either way, open http://127.0.0.1:8000. Compose publishes Postgres on 127.0.0.1:5432 (localhost only, like the app), so stop any local Postgres first or change the port in `docker-compose.yml` and `DATABASE_URL`.
 
 The CLI also has `docs-rag list`, `docs-rag remove <file_name>` and `docs-rag ask "<question>"`. Settings live in `.env.example`. The ones you are most likely to touch:
 
