@@ -55,6 +55,9 @@ def build_embed_model(settings: Settings) -> BaseEmbedding:
                 model_name=settings.embed_model,
                 base_url=settings.ollama_base_url,
                 query_instruction=settings.embed_query_instruction or None,
+                # Chunks are ~512 tokens. The server default context (often 32k) only
+                # costs VRAM that the chat model needs on a small GPU.
+                ollama_additional_kwargs={"num_ctx": 2048},
             )
         case "openai":
             from llama_index.embeddings.openai import OpenAIEmbedding
