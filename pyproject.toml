@@ -58,4 +58,3 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = ["integration: needs a running Postgres with pgvector (TEST_DATABASE_URL)"]
-filterwarnings = ["ignore::DeprecationWarning"]

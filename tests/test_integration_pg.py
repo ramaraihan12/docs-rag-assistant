@@ -6,7 +6,7 @@ Models are still faked, so no Ollama or API keys are required.
 
 import os
 import uuid
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
@@ -28,7 +28,7 @@ pytestmark = [
 
 
 @pytest.fixture
-def pg_kb(keyword_embedding) -> Iterator[KnowledgeBase]:
+async def pg_kb(keyword_embedding) -> AsyncIterator[KnowledgeBase]:
     table = f"test_{uuid.uuid4().hex[:8]}"
     settings = Settings(
         database_url=DATABASE_URL,
@@ -45,6 +45,9 @@ def pg_kb(keyword_embedding) -> Iterator[KnowledgeBase]:
 
     yield kb
 
+    # The async engine's pooled asyncpg connection belongs to this test's event loop,
+    # so it has to be closed here, before the loop goes away.
+    await kb._vector_store.close()
     engine = create_engine(make_url(DATABASE_URL).set(drivername="postgresql+psycopg2"))
     with engine.begin() as conn:
         conn.execute(text(f'DROP TABLE IF EXISTS "data_{table}", "{table}_files"'))
