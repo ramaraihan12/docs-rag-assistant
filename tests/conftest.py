@@ -78,5 +78,10 @@ def kb_with_llm() -> Callable[[LLM], KnowledgeBase]:
 
 
 @pytest.fixture
+def keyword_embedding() -> KeywordEmbedding:
+    return KeywordEmbedding()
+
+
+@pytest.fixture
 def handbook() -> Path:
     return SAMPLES / "kabut-labs-employee-handbook.pdf"
