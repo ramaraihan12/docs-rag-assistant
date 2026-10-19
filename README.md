@@ -39,7 +39,7 @@ Python 3.12 with uv, FastAPI, LlamaIndex 0.14 (pgvector store, Ollama / OpenAI /
 You need [uv](https://docs.astral.sh/uv/), Docker and [Ollama](https://ollama.com).
 
 ```bash
-ollama pull qwen3:8b
+ollama pull qwen3.5:9b
 ollama pull qwen3-embedding:0.6b
 cp .env.example .env
 ```
@@ -66,11 +66,11 @@ The CLI also has `docs-rag list`, `docs-rag remove <file_name>` and `docs-rag as
 
 | Variable | Default | |
 | --- | --- | --- |
-| `LLM_PROVIDER` / `LLM_MODEL` | `ollama` / `qwen3:8b` | also `openai`, `gemini`, `anthropic` with the matching API key |
+| `LLM_PROVIDER` / `LLM_MODEL` | `ollama` / `qwen3.5:9b` | also `openai`, `gemini`, `anthropic` with the matching API key |
 | `EMBED_PROVIDER` / `EMBED_MODEL` | `ollama` / `qwen3-embedding:0.6b` | a new embedding model needs a new `TABLE_NAME` and a re-ingest |
 | `SIMILARITY_CUTOFF` | `0.4` | below this a chunk is not used |
 
-I run it with a Qwen3.5 9B IQ4_XS build on a laptop with a 6 GB RTX 3060. An answer took 35 to 90 seconds in my runs, partly because only one model fits in VRAM, so Ollama swaps the embedding model out for the chat model on every question.
+`qwen3.5:9b` is the Qwen3.5 9B model from the Ollama library. My laptop has a 6 GB RTX 3060, so I run a smaller IQ4_XS quant of the same model that I imported from a GGUF file (`LLM_MODEL=qwen3.5-9b:iq4xs`). The example output, the timings and the screenshot above all come from that build. An answer took 35 to 90 seconds in my runs, partly because only one model fits in VRAM, so Ollama swaps the embedding model out for the chat model on every question.
 
 ## Tests
 

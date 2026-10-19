@@ -172,7 +172,7 @@ def test_ask_turns_llm_failure_into_error_event(kb_with_llm, handbook: Path):
 def test_ask_names_a_missing_model(kb_with_llm, handbook: Path):
     class NotPulledLLM(MockLLM):
         async def astream_chat(self, messages, **kwargs):
-            raise ollama.ResponseError("model 'qwen3:8b' not found", 404)
+            raise ollama.ResponseError("model 'qwen3.5:9b' not found", 404)
 
     kb = kb_with_llm(NotPulledLLM())
     with TestClient(create_app(kb=kb, settings=Settings())) as client:
@@ -181,7 +181,7 @@ def test_ask_names_a_missing_model(kb_with_llm, handbook: Path):
 
     assert events[-1] == (
         "error",
-        "Ollama doesn't have the model qwen3:8b. Pull it with: ollama pull qwen3:8b",
+        "Ollama doesn't have the model qwen3.5:9b. Pull it with: ollama pull qwen3.5:9b",
     )
 
 

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     table_name: str = "chunks"
 
     llm_provider: LLMProvider = "ollama"
-    llm_model: str = "qwen3:8b"
+    llm_model: str = "qwen3.5:9b"
     embed_provider: EmbedProvider = "ollama"
     embed_model: str = "qwen3-embedding:0.6b"
     embed_dim: int = 1024
