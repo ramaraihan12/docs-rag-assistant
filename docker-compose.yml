@@ -5,9 +5,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: rag_assistant
-    # Published so you can also run the app outside Docker with `uv run docs-rag serve`
+    # Published so you can also run the app outside Docker with `uv run docs-rag serve`.
+    # Loopback only: there is no auth and the password is the default one.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +19,7 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
       - path: .env
         required: false
