@@ -22,8 +22,8 @@ def build_llm(settings: Settings) -> LLM:
             return Ollama(
                 model=settings.llm_model,
                 base_url=settings.ollama_base_url,
-                request_timeout=180.0,
-                context_window=8192,
+                request_timeout=300.0,
+                context_window=settings.ollama_context_window,
                 temperature=0.1,
                 # Reasoning traces are slow on a small GPU and we never show them.
                 thinking=False,

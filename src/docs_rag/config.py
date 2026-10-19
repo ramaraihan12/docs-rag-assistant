@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     embed_query_instruction: str | None = QWEN3_QUERY_INSTRUCTION
 
     ollama_base_url: str = "http://localhost:11434"
+    # Ollama reloads the model whenever num_ctx changes, so match whatever else uses it.
+    ollama_context_window: int = 8192
     openai_api_key: SecretStr | None = None
     google_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
