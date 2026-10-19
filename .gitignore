@@ -17,7 +17,6 @@ uploads/
 # editors / tools
 .vscode/
 .idea/
-.claude/
 .cursor/
 node_modules/
 vendor/
