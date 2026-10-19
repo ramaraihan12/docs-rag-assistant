@@ -34,6 +34,7 @@ dev = [
     "httpx>=0.28.1,<0.29",
     "ruff>=0.17.1,<0.18",
     "reportlab>=5.0.1,<6",
+    "pytest-asyncio>=1.4.0,<2",
 ]
 
 [build-system]
@@ -52,5 +53,7 @@ select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 markers = ["integration: needs a running Postgres with pgvector (TEST_DATABASE_URL)"]
 filterwarnings = ["ignore::DeprecationWarning"]
