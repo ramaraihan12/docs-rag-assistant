@@ -39,6 +39,30 @@ def test_changed_file_replaces_old_chunks(kb: KnowledgeBase, tmp_path: Path):
     assert not any("bay seven" in t for t in texts)
 
 
+def test_failed_reingest_keeps_the_previous_version(
+    flaky_kb: KnowledgeBase, failing_embedding, tmp_path: Path
+):
+    path = tmp_path / "policy.md"
+    path.write_text("# Parking\n\nVisitors park in bay seven.\n", encoding="utf-8")
+    first = flaky_kb.ingest_file(path)
+
+    path.write_text("# Parking\n\nVisitors park behind the warehouse.\n", encoding="utf-8")
+    failing_embedding.error = ConnectionError("ollama is down")
+    with pytest.raises(ConnectionError):
+        flaky_kb.ingest_file(path)
+    failing_embedding.error = None
+
+    texts = [s.text for s in flaky_kb.retrieve("where do visitors park", apply_cutoff=False)]
+    assert any("bay seven" in t for t in texts)
+    assert flaky_kb.documents()[0].chunks == first.chunks
+
+    retry = flaky_kb.ingest_file(path)
+
+    assert not retry.skipped
+    texts = [s.text for s in flaky_kb.retrieve("where do visitors park", apply_cutoff=False)]
+    assert any("warehouse" in t for t in texts)
+
+
 def test_retrieve_returns_numbered_sources_with_pages(kb: KnowledgeBase, handbook: Path):
     kb.ingest_file(handbook)
 

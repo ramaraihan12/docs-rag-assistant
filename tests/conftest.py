@@ -46,6 +46,17 @@ class KeywordEmbedding(BaseEmbedding):
         return self._vector(query)
 
 
+class FailingEmbedding(KeywordEmbedding):
+    """Raises `error` when embedding documents while it is set, like Ollama going away."""
+
+    error: Exception | None = None
+
+    def _get_text_embedding(self, text: str) -> list[float]:
+        if self.error is not None:
+            raise self.error
+        return super()._get_text_embedding(text)
+
+
 def memory_catalog() -> Catalog:
     engine = create_engine(
         "sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False}
@@ -53,12 +64,12 @@ def memory_catalog() -> Catalog:
     return Catalog(engine, "chunks_files")
 
 
-def make_kb(llm: LLM | None = None) -> KnowledgeBase:
+def make_kb(llm: LLM | None = None, embed_model: BaseEmbedding | None = None) -> KnowledgeBase:
     """An in-memory knowledge base: no Postgres, no model server."""
     return KnowledgeBase(
         vector_store=SimpleVectorStore(),
         catalog=memory_catalog(),
-        embed_model=KeywordEmbedding(),
+        embed_model=embed_model or KeywordEmbedding(),
         llm=llm or MockLLM(max_tokens=8),
         chunk_size=256,
         chunk_overlap=32,
@@ -80,6 +91,16 @@ def kb_with_llm() -> Callable[[LLM], KnowledgeBase]:
 @pytest.fixture
 def keyword_embedding() -> KeywordEmbedding:
     return KeywordEmbedding()
+
+
+@pytest.fixture
+def failing_embedding() -> FailingEmbedding:
+    return FailingEmbedding()
+
+
+@pytest.fixture
+def flaky_kb(failing_embedding: FailingEmbedding) -> KnowledgeBase:
+    return make_kb(embed_model=failing_embedding)
 
 
 @pytest.fixture

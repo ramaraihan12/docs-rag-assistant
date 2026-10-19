@@ -8,7 +8,7 @@ from llama_index.core.indices.vector_store import VectorIndexRetriever
 from llama_index.core.llms import LLM
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.postprocessor import SimilarityPostprocessor
-from llama_index.core.schema import NodeWithScore
+from llama_index.core.schema import MetadataMode, NodeWithScore
 from llama_index.core.vector_stores.types import (
     BasePydanticVectorStore,
     MetadataFilter,
@@ -36,6 +36,7 @@ class KnowledgeBase:
     ) -> None:
         self._vector_store = vector_store
         self._catalog = catalog
+        self._embed_model = embed_model
         self._llm = llm
         self._index = VectorStoreIndex(
             nodes=[],
@@ -65,6 +66,17 @@ class KnowledgeBase:
         page_numbers = [doc.metadata["page"] for doc in docs if doc.metadata["page"] is not None]
         pages = max(page_numbers) if page_numbers else None
 
+        # Embed before touching the old chunks. The model call is what usually fails
+        # (server down, model not pulled, timeout), and the old version should stay
+        # searchable when it does. insert_nodes keeps embeddings that are already set.
+        texts = [node.get_content(metadata_mode=MetadataMode.EMBED) for node in nodes]
+        embeddings = self._embed_model.get_text_embedding_batch(texts)
+        for node, embedding in zip(nodes, embeddings, strict=True):
+            node.embedding = embedding
+
+        # Catalog row first, so a failure below can't leave a stale hash that makes a
+        # retry look like "unchanged".
+        self._catalog.remove(name)
         self._delete_chunks(name)
         self._index.insert_nodes(nodes)
         self._catalog.save(name, digest, pages, len(nodes))
