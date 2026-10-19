@@ -6,7 +6,7 @@ every question in questions.jsonl, and checks where the expected chunk shows up.
     uv run python evals/run_eval.py
     uv run python evals/run_eval.py --top-k 3
 
-Only embeddings are called, never the chat model, so a run takes seconds.
+Only the embedding model is called, never the chat model.
 """
 
 import argparse
