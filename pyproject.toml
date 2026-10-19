@@ -21,6 +21,8 @@ dependencies = [
     "llama-index-llms-google-genai>=0.11.3,<0.12",
     "llama-index-embeddings-google-genai>=0.6.0,<0.7",
     "llama-index-llms-anthropic>=0.12.3,<0.13",
+    "ollama>=0.6.3,<0.7",
+    "httpx>=0.28.1,<0.29",
     "pypdf>=6.21.1,<7",
     "python-docx>=1.2.0,<2",
 ]
@@ -31,7 +33,6 @@ docs-rag = "docs_rag.cli:main"
 [dependency-groups]
 dev = [
     "pytest>=9.1.1,<10",
-    "httpx>=0.28.1,<0.29",
     "ruff>=0.17.1,<0.18",
     "reportlab>=5.0.1,<6",
     "pytest-asyncio>=1.4.0,<2",

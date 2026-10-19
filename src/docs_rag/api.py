@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Annotated
 
 import httpx
+import ollama
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.sse import EventSourceResponse, ServerSentEvent
@@ -18,6 +19,7 @@ from sqlalchemy.exc import OperationalError
 
 from docs_rag.catalog import DocumentRecord
 from docs_rag.config import Settings, get_settings
+from docs_rag.errors import PROVIDER_ERRORS, provider_error_message
 from docs_rag.knowledge import KnowledgeBase
 from docs_rag.loaders import SUPPORTED_SUFFIXES, DocumentError
 from docs_rag.models import AnswerDelta, IngestResult, SourcesFound
@@ -62,9 +64,17 @@ def create_app(kb: KnowledgeBase | None = None, settings: Settings | None = None
 
     @app.exception_handler(ConnectionError)
     @app.exception_handler(httpx.ConnectError)
-    async def provider_down(request: Request, exc: Exception) -> JSONResponse:
-        log.error("model provider error: %s", exc)
-        return JSONResponse({"detail": "The model provider is not reachable."}, status_code=503)
+    @app.exception_handler(httpx.TimeoutException)
+    @app.exception_handler(ollama.ResponseError)
+    async def provider_failed(request: Request, exc: Exception) -> JSONResponse:
+        log.error("model provider error: %r", exc)
+        if isinstance(exc, ollama.ResponseError):
+            code = status.HTTP_502_BAD_GATEWAY
+        elif isinstance(exc, httpx.TimeoutException):
+            code = status.HTTP_504_GATEWAY_TIMEOUT
+        else:
+            code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return JSONResponse({"detail": provider_error_message(exc)}, status_code=code)
 
     @app.get("/", include_in_schema=False)
     def index() -> FileResponse:
@@ -124,12 +134,16 @@ def create_app(kb: KnowledgeBase | None = None, settings: Settings | None = None
                     case AnswerDelta(text):
                         answer.append(text)
                         yield ServerSentEvent(event="token", data=text)
-        except Exception:
+        except PROVIDER_ERRORS as exc:
             # Headers are already sent, so the client can only learn about it in-band.
+            log.error("answering failed: %r", exc)
+            yield ServerSentEvent(event="error", data=provider_error_message(exc))
+            return
+        except Exception:
             log.exception("answering failed")
             yield ServerSentEvent(
                 event="error",
-                data="Something went wrong while answering. Is the model server running?",
+                data="Something went wrong while answering. The server log has the details.",
             )
             return
 

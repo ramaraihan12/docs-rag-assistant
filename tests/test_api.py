@@ -2,6 +2,8 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 
+import httpx
+import ollama
 import pytest
 from fastapi.testclient import TestClient
 from llama_index.core.llms import MockLLM
@@ -147,6 +149,46 @@ def test_ask_turns_llm_failure_into_error_event(kb_with_llm, handbook: Path):
 
     assert events[0][0] == "sources"
     assert events[-1][0] == "error"
+
+
+def test_ask_names_a_missing_model(kb_with_llm, handbook: Path):
+    class NotPulledLLM(MockLLM):
+        async def astream_chat(self, messages, **kwargs):
+            raise ollama.ResponseError("model 'qwen3:8b' not found", 404)
+
+    kb = kb_with_llm(NotPulledLLM())
+    with TestClient(create_app(kb=kb, settings=Settings())) as client:
+        upload(client, handbook)
+        events = parse_sse(client.post("/api/ask", json={"question": "annual leave"}).text)
+
+    assert events[-1] == (
+        "error",
+        "Ollama doesn't have the model qwen3:8b. Pull it with: ollama pull qwen3:8b",
+    )
+
+
+def test_upload_reports_a_missing_embedding_model(
+    flaky_kb: KnowledgeBase, failing_embedding, handbook: Path
+):
+    failing_embedding.error = ollama.ResponseError(
+        '{"error":"model \\"nomic-embed-text\\" not found, try pulling it first"}', 404
+    )
+    with TestClient(create_app(kb=flaky_kb, settings=Settings())) as client:
+        res = upload(client, handbook)
+
+    assert res.status_code == 502
+    assert res.json()["detail"].endswith("ollama pull nomic-embed-text")
+
+
+def test_upload_reports_a_provider_timeout(
+    flaky_kb: KnowledgeBase, failing_embedding, handbook: Path
+):
+    failing_embedding.error = httpx.ReadTimeout("timed out")
+    with TestClient(create_app(kb=flaky_kb, settings=Settings())) as client:
+        res = upload(client, handbook)
+
+    assert res.status_code == 504
+    assert "too long" in res.json()["detail"]
 
 
 def test_ask_validates_question(client: TestClient):

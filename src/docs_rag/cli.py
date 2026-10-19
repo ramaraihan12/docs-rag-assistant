@@ -6,10 +6,10 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
-import httpx
 from sqlalchemy.exc import OperationalError
 
 from docs_rag.config import get_settings
+from docs_rag.errors import PROVIDER_ERRORS, provider_error_message
 from docs_rag.factory import build_knowledge_base
 from docs_rag.knowledge import KnowledgeBase
 from docs_rag.loaders import SUPPORTED_SUFFIXES, DocumentError
@@ -113,8 +113,8 @@ def main(argv: list[str] | None = None) -> int:
         return args.func(kb, args)
     except OperationalError as exc:
         print(f"Can't reach Postgres: {exc.orig}", file=sys.stderr)
-    except (ConnectionError, httpx.ConnectError) as exc:
-        print(f"Can't reach the model provider: {exc}", file=sys.stderr)
+    except PROVIDER_ERRORS as exc:
+        print(provider_error_message(exc), file=sys.stderr)
     return 2
 
 
