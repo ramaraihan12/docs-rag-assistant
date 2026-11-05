@@ -411,28 +411,39 @@ dependencies = [
     { name = "httpx" },
     { name = "llama-index-core" },
     { name = "llama-index-embeddings-google-genai" },
-    { name = "llama-index-embeddings-ollama" },
-    { name = "llama-index-embeddings-openai" },
-    { name = "llama-index-llms-anthropic" },
     { name = "llama-index-llms-google-genai" },
-    { name = "llama-index-llms-ollama" },
-    { name = "llama-index-llms-openai" },
     { name = "llama-index-vector-stores-postgres" },
     { name = "ollama" },
     { name = "pydantic-settings" },
-    { name = "pypdf" },
-    { name = "python-docx" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
-    { name = "uvicorn", extra = ["standard"] },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "llama-index-embeddings-ollama" },
+    { name = "llama-index-embeddings-openai" },
+    { name = "llama-index-llms-anthropic" },
+    { name = "llama-index-llms-ollama" },
+    { name = "llama-index-llms-openai" },
+    { name = "pypdf" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "python-docx" },
     { name = "reportlab" },
     { name = "ruff" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+full = [
+    { name = "llama-index-embeddings-ollama" },
+    { name = "llama-index-embeddings-openai" },
+    { name = "llama-index-llms-anthropic" },
+    { name = "llama-index-llms-ollama" },
+    { name = "llama-index-llms-openai" },
+    { name = "pypdf" },
+    { name = "python-docx" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.metadata]
@@ -441,28 +452,39 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1,<0.29" },
     { name = "llama-index-core", specifier = ">=0.14.25,<0.15" },
     { name = "llama-index-embeddings-google-genai", specifier = ">=0.6.0,<0.7" },
-    { name = "llama-index-embeddings-ollama", specifier = ">=0.10.0,<0.11" },
-    { name = "llama-index-embeddings-openai", specifier = ">=0.7.0,<0.8" },
-    { name = "llama-index-llms-anthropic", specifier = ">=0.12.3,<0.13" },
     { name = "llama-index-llms-google-genai", specifier = ">=0.11.3,<0.12" },
-    { name = "llama-index-llms-ollama", specifier = ">=0.11.0,<0.12" },
-    { name = "llama-index-llms-openai", specifier = ">=0.8.3,<0.9" },
     { name = "llama-index-vector-stores-postgres", specifier = ">=0.9.0,<0.10" },
     { name = "ollama", specifier = ">=0.6.3,<0.7" },
     { name = "pydantic-settings", specifier = ">=2.16.0,<3" },
-    { name = "pypdf", specifier = ">=6.21.1,<7" },
-    { name = "python-docx", specifier = ">=1.2.0,<2" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "sqlalchemy", specifier = ">=2.0,<2.2" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0,<0.55" },
+    { name = "uvicorn", specifier = ">=0.54.0,<0.55" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "llama-index-embeddings-ollama", specifier = ">=0.10.0,<0.11" },
+    { name = "llama-index-embeddings-openai", specifier = ">=0.7.0,<0.8" },
+    { name = "llama-index-llms-anthropic", specifier = ">=0.12.3,<0.13" },
+    { name = "llama-index-llms-ollama", specifier = ">=0.11.0,<0.12" },
+    { name = "llama-index-llms-openai", specifier = ">=0.8.3,<0.9" },
+    { name = "pypdf", specifier = ">=6.21.1,<7" },
     { name = "pytest", specifier = ">=9.1.1,<10" },
     { name = "pytest-asyncio", specifier = ">=1.4.0,<2" },
+    { name = "python-docx", specifier = ">=1.2.0,<2" },
     { name = "reportlab", specifier = ">=5.0.1,<6" },
     { name = "ruff", specifier = ">=0.17.1,<0.18" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0,<0.55" },
+]
+full = [
+    { name = "llama-index-embeddings-ollama", specifier = ">=0.10.0,<0.11" },
+    { name = "llama-index-embeddings-openai", specifier = ">=0.7.0,<0.8" },
+    { name = "llama-index-llms-anthropic", specifier = ">=0.12.3,<0.13" },
+    { name = "llama-index-llms-ollama", specifier = ">=0.11.0,<0.12" },
+    { name = "llama-index-llms-openai", specifier = ">=0.8.3,<0.9" },
+    { name = "pypdf", specifier = ">=6.21.1,<7" },
+    { name = "python-docx", specifier = ">=1.2.0,<2" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0,<0.55" },
 ]
 
 [[package]]

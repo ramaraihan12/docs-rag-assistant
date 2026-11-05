@@ -8,30 +8,37 @@ authors = [{ name = "Rama Raihan" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.146.0,<0.147",
-    "uvicorn[standard]>=0.54.0,<0.55",
+    "uvicorn>=0.54.0,<0.55",
     "python-multipart>=0.0.32",
     "pydantic-settings>=2.16.0,<3",
     "sqlalchemy>=2.0,<2.2",
     "llama-index-core>=0.14.25,<0.15",
     "llama-index-vector-stores-postgres>=0.9.0,<0.10",
-    "llama-index-llms-ollama>=0.11.0,<0.12",
-    "llama-index-embeddings-ollama>=0.10.0,<0.11",
-    "llama-index-llms-openai>=0.8.3,<0.9",
-    "llama-index-embeddings-openai>=0.7.0,<0.8",
     "llama-index-llms-google-genai>=0.11.3,<0.12",
     "llama-index-embeddings-google-genai>=0.6.0,<0.7",
-    "llama-index-llms-anthropic>=0.12.3,<0.13",
     "ollama>=0.6.3,<0.7",
     "httpx>=0.28.1,<0.29",
-    "pypdf>=6.21.1,<7",
-    "python-docx>=1.2.0,<2",
 ]
 
 [project.scripts]
 docs-rag = "docs_rag.cli:main"
 
 [dependency-groups]
+# Everything the read-only Gemini deployment doesn't need. `uv sync` installs it through
+# the dev group. The Vercel build uses --no-dev, and above 225 MB it stops bundling packages
+# and installs them on every cold start instead.
+full = [
+    "uvicorn[standard]>=0.54.0,<0.55",
+    "pypdf>=6.21.1,<7",
+    "python-docx>=1.2.0,<2",
+    "llama-index-llms-ollama>=0.11.0,<0.12",
+    "llama-index-embeddings-ollama>=0.10.0,<0.11",
+    "llama-index-llms-openai>=0.8.3,<0.9",
+    "llama-index-embeddings-openai>=0.7.0,<0.8",
+    "llama-index-llms-anthropic>=0.12.3,<0.13",
+]
 dev = [
+    { include-group = "full" },
     "pytest>=9.1.1,<10",
     "ruff>=0.17.1,<0.18",
     "reportlab>=5.0.1,<6",

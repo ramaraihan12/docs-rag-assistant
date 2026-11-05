@@ -10,11 +10,11 @@ WORKDIR /app
 
 # Dependencies first so code changes don't reinstall them.
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --locked --no-dev --no-install-project
+RUN uv sync --locked --no-dev --group full --no-install-project
 
 COPY src ./src
 COPY samples ./samples
-RUN uv sync --locked --no-dev --no-editable
+RUN uv sync --locked --no-dev --group full --no-editable
 
 RUN useradd --create-home app
 USER app
