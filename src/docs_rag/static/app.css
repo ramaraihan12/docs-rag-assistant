@@ -61,6 +61,18 @@ button, textarea, input { font: inherit; color: inherit; }
 .brand h1 { font-size: 18px; margin: 0 0 4px; letter-spacing: -0.01em; }
 .brand p { margin: 0; color: var(--muted); font-size: 13px; }
 
+.demo-note {
+  display: none;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 13px;
+}
+.demo-note a { color: var(--accent); }
+[data-demo] .demo-note { display: block; }
+[data-demo] .dropzone, [data-demo] .upload-status, [data-demo] .doc-remove { display: none; }
+
 .dropzone {
   display: flex;
   flex-direction: column;

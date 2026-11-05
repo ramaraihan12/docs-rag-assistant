@@ -9,6 +9,18 @@ from pydantic import SecretStr
 
 from docs_rag.config import Settings
 
+_GEMINI_DEMO_OPTIONS = {
+    # With both of these set the client skips its models.get call, which would otherwise
+    # run on every cold start, and a long answer can't run away.
+    "max_tokens": 1024,
+    "context_window": 32768,
+    # The free tier answers 503 "high demand" every so often, and the SDK doesn't retry
+    # unless asked. Not 429: that's a used up quota, and asking again only makes it worse.
+    "http_options": {
+        "retry_options": {"attempts": 3, "http_status_codes": [500, 502, 503, 504]},
+    },
+}
+
 
 def _secret(value: SecretStr | None) -> str | None:
     return value.get_secret_value() if value else None
@@ -35,7 +47,10 @@ def build_llm(settings: Settings) -> LLM:
         case "gemini":
             from llama_index.llms.google_genai import GoogleGenAI
 
-            return GoogleGenAI(model=settings.llm_model, api_key=_secret(settings.google_api_key))
+            options = _GEMINI_DEMO_OPTIONS if settings.demo_mode else {}
+            return GoogleGenAI(
+                model=settings.llm_model, api_key=_secret(settings.google_api_key), **options
+            )
         case "anthropic":
             from llama_index.llms.anthropic import Anthropic
 

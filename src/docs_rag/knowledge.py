@@ -16,7 +16,6 @@ from llama_index.core.vector_stores.types import (
 )
 
 from docs_rag.catalog import Catalog, DocumentRecord
-from docs_rag.loaders import load_file
 from docs_rag.models import AnswerDelta, AnswerEvent, IngestResult, Source, SourcesFound
 from docs_rag.prompts import build_messages, no_answer_message
 
@@ -33,6 +32,7 @@ class KnowledgeBase:
         chunk_overlap: int = 64,
         top_k: int = 5,
         similarity_cutoff: float = 0.4,
+        read_only: bool = False,
     ) -> None:
         self._vector_store = vector_store
         self._catalog = catalog
@@ -48,6 +48,7 @@ class KnowledgeBase:
         # creation time, so chunks ingested later would never be found.
         self._retriever = VectorIndexRetriever(self._index, similarity_top_k=top_k)
         self._cutoff = SimilarityPostprocessor(similarity_cutoff=similarity_cutoff)
+        self._read_only = read_only
 
     def documents(self) -> list[DocumentRecord]:
         return self._catalog.list()
@@ -59,6 +60,9 @@ class KnowledgeBase:
         existing = self._catalog.get(name)
         if existing and existing.sha256 == digest:
             return IngestResult(name, existing.pages, existing.chunks, skipped=True)
+
+        # Here rather than at the top: the file parsers aren't in the demo's bundle.
+        from docs_rag.loaders import load_file
 
         docs = load_file(path, file_name=name)
 
@@ -102,7 +106,7 @@ class KnowledgeBase:
         yield SourcesFound(sources)
 
         if not sources:
-            yield AnswerDelta(no_answer_message(question))
+            yield AnswerDelta(no_answer_message(question, read_only=self._read_only))
             return
 
         stream = await self._llm.astream_chat(build_messages(question, sources))

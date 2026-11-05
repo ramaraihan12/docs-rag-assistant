@@ -27,6 +27,18 @@ NO_ANSWER = {
     ),
 }
 
+# For the public demo, where there's no uploading the missing document.
+NO_ANSWER_READ_ONLY = {
+    "en": (
+        "I couldn't find anything about that in these documents, so I'd rather not guess. "
+        "Try rephrasing, or ask about something they cover."
+    ),
+    "id": (
+        "Saya tidak menemukan informasi itu di dokumen ini, jadi saya tidak mau menebak. "
+        "Coba ubah pertanyaannya, atau tanyakan hal yang dibahas di dokumen."
+    ),
+}
+
 # Short function words that almost never show up in English questions.
 _INDONESIAN_WORDS = {
     "apa", "apakah", "bagaimana", "berapa", "kapan", "siapa", "mengapa", "kenapa",
@@ -40,8 +52,9 @@ def looks_indonesian(text: str) -> bool:
     return any(word in _INDONESIAN_WORDS for word in re.findall(r"[a-z]+", text.lower()))
 
 
-def no_answer_message(question: str) -> str:
-    return NO_ANSWER["id" if looks_indonesian(question) else "en"]
+def no_answer_message(question: str, *, read_only: bool = False) -> str:
+    messages = NO_ANSWER_READ_ONLY if read_only else NO_ANSWER
+    return messages["id" if looks_indonesian(question) else "en"]
 
 
 def format_sources(sources: Sequence[Source]) -> str:

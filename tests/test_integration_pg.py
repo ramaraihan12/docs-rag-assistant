@@ -7,6 +7,7 @@ Models are still faked, so no Ollama or API keys are required.
 import os
 import uuid
 from collections.abc import AsyncIterator
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -15,7 +16,7 @@ from sqlalchemy import create_engine, make_url, text
 from sqlalchemy.exc import OperationalError
 
 from docs_rag.config import Settings
-from docs_rag.factory import build_knowledge_base
+from docs_rag.factory import build_knowledge_base, build_quota
 from docs_rag.knowledge import KnowledgeBase
 from docs_rag.models import AnswerDelta, SourcesFound
 
@@ -87,3 +88,27 @@ def test_reingest_replaces_and_remove_deletes(pg_kb: KnowledgeBase, tmp_path: Pa
 
     assert pg_kb.remove("parking.md")
     assert pg_kb.retrieve("where do visitors park", apply_cutoff=False) == []
+
+
+def test_quota_holds_across_instances_under_concurrency():
+    table = f"test_{uuid.uuid4().hex[:8]}"
+    settings = Settings(
+        database_url=DATABASE_URL,
+        table_name=table,
+        demo_mode=True,
+        demo_questions_per_minute=1000,
+        demo_questions_per_day=1000,
+        demo_questions_all_per_day=10,
+    )
+    # Separate objects with separate engines, like separate serverless instances.
+    instances = [build_quota(settings) for _ in range(4)]
+    try:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(lambda n: instances[n % 4].check(f"10.0.0.{n}"), range(40)))
+    finally:
+        engine = create_engine(make_url(DATABASE_URL).set(drivername="postgresql+psycopg2"))
+        with engine.begin() as conn:
+            conn.execute(text(f'DROP TABLE IF EXISTS "{table}_quota"'))
+        engine.dispose()
+
+    assert sum(result is None for result in results) == 10

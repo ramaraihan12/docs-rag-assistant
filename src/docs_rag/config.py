@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     similarity_cutoff: float = 0.4
     max_upload_mb: int = 20
 
+    # For a public deployment: uploads and deletes are refused, and /api/ask gets the
+    # limits below because every question costs an embedding call and a chat call.
+    demo_mode: bool = False
+    demo_max_question_chars: int = 500
+    demo_questions_per_minute: int = 5
+    demo_questions_per_day: int = 20
+    demo_questions_all_per_day: int = 100
+
 
 @lru_cache
 def get_settings() -> Settings:

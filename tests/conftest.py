@@ -64,7 +64,12 @@ def memory_catalog() -> Catalog:
     return Catalog(engine, "chunks_files")
 
 
-def make_kb(llm: LLM | None = None, embed_model: BaseEmbedding | None = None) -> KnowledgeBase:
+def make_kb(
+    llm: LLM | None = None,
+    embed_model: BaseEmbedding | None = None,
+    *,
+    read_only: bool = False,
+) -> KnowledgeBase:
     """An in-memory knowledge base: no Postgres, no model server."""
     return KnowledgeBase(
         vector_store=SimpleVectorStore(),
@@ -75,6 +80,7 @@ def make_kb(llm: LLM | None = None, embed_model: BaseEmbedding | None = None) ->
         chunk_overlap=32,
         top_k=3,
         similarity_cutoff=0.2,
+        read_only=read_only,
     )
 
 

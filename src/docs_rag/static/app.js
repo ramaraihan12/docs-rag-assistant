@@ -6,6 +6,9 @@ const input = $("#question");
 const sendButton = $("#send");
 const uploadStatus = $("#upload-status");
 
+const { maxQuestion } = document.documentElement.dataset;
+if (maxQuestion) input.maxLength = Number(maxQuestion);
+
 // ---- documents ----
 
 async function loadDocuments() {
