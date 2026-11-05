@@ -4,6 +4,8 @@
 
 Ask questions about your own PDFs, Word files and Markdown notes, and get short answers that point to the file and page they came from. It runs on a local Ollama model by default, so it costs nothing, and it works in English and Bahasa Indonesia.
 
+**Live demo:** https://docs-rag-assistant-psi.vercel.app, no login. It answers from the three made-up sample documents, with uploads turned off and questions rate limited. The database sleeps when idle, so the first question after a quiet spell takes a few seconds longer.
+
 ![The web UI answering a question with two cited sources](docs/screenshot.png)
 
 From the command line, asking in Indonesian about an English PDF:
@@ -71,6 +73,15 @@ The CLI also has `docs-rag list`, `docs-rag remove <file_name>` and `docs-rag as
 | `SIMILARITY_CUTOFF` | `0.4` | below this a chunk is not used |
 
 `qwen3.5:9b` is the Qwen3.5 9B model from the Ollama library. My laptop has a 6 GB RTX 3060, so I run a smaller IQ4_XS quant of the same model that I imported from a GGUF file (`LLM_MODEL=qwen3.5-9b:iq4xs`). The example output, the timings and the screenshot above all come from that build. An answer took 35 to 90 seconds in my runs, partly because only one model fits in VRAM, so Ollama swaps the embedding model out for the chat model on every question.
+
+## The public demo
+
+The demo runs on Vercel's Python runtime with Neon Postgres and Gemini: `gemini-3.5-flash-lite` for answers and `gemini-embedding-001` at 768 dimensions for search. A few things are different from running it at home.
+
+- `DEMO_MODE=true` refuses uploads and deletes, because strangers would otherwise share one index and could read or wipe each other's files. It also caps `/api/ask` at 500 characters, 5 questions a minute and 20 a day per IP, and 100 a day overall, since every question costs an embedding call and a chat call on a free key. The counters are in Postgres because serverless instances share no memory. With the flag off none of this applies.
+- The 0.4 cutoff doesn't carry over. Gemini scores everything higher, so all 3 off-topic eval questions got through it. Right answers scored 0.67 to 0.82 and the highest off-topic question 0.54, so the demo uses `SIMILARITY_CUTOFF=0.6`.
+- The free tier answers 503 "high demand" every so often, twice in about 20 calls while I was testing it. The SDK doesn't retry unless asked, so the demo tries three times and then says Gemini is busy. It doesn't retry a 429, because that means the quota is gone.
+- Above 225 MB Vercel stops bundling packages and installs them on every cold start, so `pyproject.toml` keeps the other providers and the file parsers in a `full` group. `uv sync` includes it through the dev group, and the Dockerfile asks for it by name. The samples are ingested from a normal install, which is why the demo doesn't need the parsers.
 
 ## Tests
 
