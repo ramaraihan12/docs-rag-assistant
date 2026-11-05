@@ -4,7 +4,7 @@
 
 Ask questions about your own PDFs, Word files and Markdown notes, and get short answers that point to the file and page they came from. It runs on a local Ollama model by default, so it costs nothing, and it works in English and Bahasa Indonesia.
 
-**Live demo:** https://docs-rag-assistant-psi.vercel.app, no login. It answers from the three made-up sample documents, with uploads turned off and questions rate limited. The database sleeps when idle, so the first question after a quiet spell takes a few seconds longer.
+**Live demo:** https://docs-rag-assistant-psi.vercel.app, no login. It answers from the three made-up sample documents, with uploads turned off and questions rate limited. It sleeps when idle, so the first request after a quiet spell can take about 7 seconds.
 
 ![The web UI answering a question with two cited sources](docs/screenshot.png)
 
