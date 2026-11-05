@@ -1,0 +1,11 @@
+.env
+.env.*
+.github
+.venv
+Dockerfile
+docker-compose.yml
+docs
+evals
+samples
+scripts
+tests

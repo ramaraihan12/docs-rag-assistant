@@ -18,5 +18,6 @@ uploads/
 .vscode/
 .idea/
 .cursor/
+.vercel/
 node_modules/
 vendor/
