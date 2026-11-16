@@ -6,6 +6,8 @@ Ask questions about your own PDFs, Word files and Markdown notes, and get short 
 
 **Live demo:** https://docs-rag-assistant-psi.vercel.app, no login. It answers from the three made-up sample documents, with uploads turned off and questions rate limited. It sleeps when idle, so the first request after a quiet spell can take about 7 seconds.
 
+The live model is switched off for visitors in the EEA, Switzerland and the UK, because it runs on Gemini's free tier and Google's terms for that tier exclude those regions. They get a recorded answer instead. Running it yourself isn't affected.
+
 ![The web UI answering a question with two cited sources](docs/screenshot.png)
 
 From the command line, asking in Indonesian about an English PDF:

@@ -24,6 +24,7 @@ from docs_rag.errors import PROVIDER_ERRORS, provider_error_message
 from docs_rag.knowledge import KnowledgeBase
 from docs_rag.models import AnswerDelta, IngestResult, SourcesFound
 from docs_rag.quota import Quota, client_ip
+from docs_rag.region import is_blocked, require_allowed_region
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -120,12 +121,21 @@ def create_app(
             )
 
     @app.get("/", include_in_schema=False)
-    def index() -> Response:
-        if not settings.demo_mode:
+    def index(request: Request) -> Response:
+        blocked = is_blocked(request)
+        if not settings.demo_mode and not blocked:
             return FileResponse(STATIC_DIR / "index.html")
         html = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
-        attrs = f'data-demo data-max-question="{settings.demo_max_question_chars}"'
-        return HTMLResponse(html.replace("<html", f"<html {attrs}", 1))
+        attrs = []
+        if settings.demo_mode:
+            attrs.append(f'data-demo data-max-question="{settings.demo_max_question_chars}"')
+        if blocked:
+            attrs.append("data-blocked")
+        # The page differs by country, so a shared cache must not hand it to someone else.
+        return HTMLResponse(
+            html.replace("<html", f"<html {' '.join(attrs)}", 1),
+            headers={"Cache-Control": "private, no-store"},
+        )
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
@@ -145,7 +155,12 @@ def create_app(
     else:
         from docs_rag.loaders import SUPPORTED_SUFFIXES, DocumentError
 
-        @app.post("/api/documents", status_code=status.HTTP_201_CREATED)
+        # Indexing a file calls the embedding model.
+        @app.post(
+            "/api/documents",
+            status_code=status.HTTP_201_CREATED,
+            dependencies=[Depends(require_allowed_region)],
+        )
         def upload_document(file: UploadFile, kb: KB) -> IngestResult:
             name = Path(file.filename or "").name
             if Path(name).suffix.lower() not in SUPPORTED_SUFFIXES:
@@ -179,7 +194,9 @@ def create_app(
     @app.post(
         "/api/ask",
         response_class=EventSourceResponse,
-        dependencies=[Depends(demo_limits)] if settings.demo_mode else [],
+        # The region check comes first, so a blocked visitor doesn't spend any quota.
+        dependencies=[Depends(require_allowed_region)]
+        + ([Depends(demo_limits)] if settings.demo_mode else []),
     )
     async def ask(body: AskRequest, kb: KB) -> AsyncIterator[ServerSentEvent]:
         """Stream an answer as server-sent events.

@@ -1,0 +1,55 @@
+{
+  "recorded": "2026-11-16",
+  "question": "How many days of annual leave do I get?",
+  "answer": "You get 14 working days of paid annual leave per year [1].",
+  "sources": [
+    {
+      "number": 1,
+      "file_name": "kabut-labs-employee-handbook.pdf",
+      "page": 3,
+      "section": null,
+      "score": 0.701,
+      "text": "Kabut Labs Employee Handbook, version 3.1\n3\nAnnual leave\nEveryone gets 14 working days of paid annual leave per year. Leave builds up monthly, so you\nearn about 1.17 days for each month worked. New starters can use leave once they have earned it,\nincluding during probation.\nRequest leave in Lumbung. For anything longer than two days, ask at least seven days ahead so\nthe team can plan. Up to five unused days carry over into the next year; carried-over days expire on\n31 March.\nSick leave\nTell your lead as early as you can on the day. Sick leave is paid. For absences longer than two\nconsecutive working days we need a doctor's note, uploaded to Lumbung when you are back.\nParental and other leave\nMaternity leave is three months, following Indonesian law. Fathers get ten working days of paid\npaternity leave, to be taken within 60 days of the birth or adoption. Bereavement leave is three\nworking days for a close family member. Public holidays follow the government calendar.",
+      "location": "page 3"
+    },
+    {
+      "number": 2,
+      "file_name": "kabut-labs-employee-handbook.pdf",
+      "page": 7,
+      "section": null,
+      "score": 0.6322,
+      "text": "Kabut Labs Employee Handbook, version 3.1\n7\nProbation\nNew employees have a three-month probation period. Halfway through, you and your lead have a\ncheck-in to talk about how it is going. At the end, your lead confirms your contract in writing.\nPerformance and growth\nEveryone has a one-to-one with their lead every two weeks. Formal reviews happen twice a year, in\nJune and December, and salary changes are decided after the December review.\nLeaving Kabut Labs\nThe notice period is 30 days after probation and seven days during probation. Your last salary,\nunused annual leave and any approved expense claims are paid with the next regular payroll.",
+      "location": "page 7"
+    },
+    {
+      "number": 3,
+      "file_name": "kabut-labs-employee-handbook.pdf",
+      "page": 2,
+      "section": null,
+      "score": 0.6322,
+      "text": "Kabut Labs Employee Handbook, version 3.1\n2\nWorking hours\nA full-time week is 40 hours, Monday to Friday. Core hours are 10:00 to 15:00 WIB. During core\nhours you should be reachable on team chat and available for meetings. Outside core hours you\nchoose when to start and finish, as long as you start between 07:00 and 10:00.\nOvertime is not expected. If a release or an incident means you work more than 45 hours in a week,\nrecord it in Lumbung (our HR app) and take the time back within the next month.\nRemote work\nAfter probation you may work remotely up to three days a week. Agree the days with your lead and\nkeep them in the team calendar. Firmware and hardware roles may need to be in the lab more often\nduring prototype builds.\nWorking from outside Indonesia needs written approval from the Head of People at least 14 days\nbefore you travel, and is limited to 30 days per calendar year. You are responsible for a stable\nconnection during core hours.",
+      "location": "page 2"
+    },
+    {
+      "number": 4,
+      "file_name": "kabut-labs-employee-handbook.pdf",
+      "page": 4,
+      "section": null,
+      "score": 0.6259,
+      "text": "Kabut Labs Employee Handbook, version 3.1\n4\nPay day\nSalaries are paid on the 25th of each month. When the 25th falls on a weekend or public holiday,\nwe pay on the working day before it. Payslips are available in Lumbung on the same day.\nThe religious holiday allowance (THR) is one month's salary and is paid at least 14 days before Eid\nal-Fitr, earlier than the legal minimum.\nBenefits\nWe register everyone with BPJS Kesehatan and BPJS Ketenagakerjaan from the first day. On top\nof that, each employee has a learning budget of Rp 6,000,000 per year for courses, books,\ncertifications and conference tickets. Unused budget does not roll over.\nPeople who work remotely at least two days a week receive an internet allowance of Rp 350,000\nper month with their salary.",
+      "location": "page 4"
+    },
+    {
+      "number": 5,
+      "file_name": "kabut-labs-employee-handbook.pdf",
+      "page": 1,
+      "section": null,
+      "score": 0.6152,
+      "text": "Kabut Labs Employee Handbook, version 3.1\n1\n Kabut Labs Employee Handbook\nWelcome to Kabut Labs\nKabut Labs is a small hardware and software company in Salatiga, Central Java. We design\nlow-power sensors for homes and small farms and the app that goes with them. There are 34 of us,\nsplit across firmware, cloud, mobile, support and operations.\nThis handbook explains how we work: hours, leave, pay, equipment and the rules we hold each\nother to. It applies to everyone on a permanent or fixed-term contract. Interns get a shorter version\nfrom the People team.\nIf something here is unclear or out of date, tell the People team at people@kabutlabs.example. We\nreview the handbook every January. This is version 3.1, effective 1 February 2026.\nOur office\nThe office is at Jl. Kemiri Raya 12, Salatiga. It is open from 07:00 to 20:00 on working days. Visitors\nsign in at the front desk and must be accompanied in the lab area.",
+      "location": "page 1"
+    }
+  ],
+  "cited": [
+    1
+  ]
+}

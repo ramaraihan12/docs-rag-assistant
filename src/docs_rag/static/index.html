@@ -34,6 +34,7 @@
 
     <main class="chat">
       <div class="thread" id="thread" aria-live="polite">
+        <p class="region-note" id="region-note" role="status" hidden>The live AI part of this demo isn't available in the EEA, Switzerland or the UK, because it runs on a free model tier whose terms exclude those regions. Here's a recorded example instead.</p>
         <div class="intro" id="intro">
           <h2>Ask something about your documents</h2>
           <p>Answers cite their sources like <span class="cite cite-static">1</span>. Click a citation to read the passage it came from. If nothing relevant is found, it says so instead of guessing.</p>
@@ -51,6 +52,7 @@
         <textarea id="question" rows="1" placeholder="Ask in English or Bahasa Indonesia" required maxlength="2000"></textarea>
         <button type="submit" id="send">Ask</button>
       </form>
+      <p class="privacy-hint">Questions go to a free Gemini model. Please don't enter personal information.</p>
     </main>
   </div>
 

@@ -281,5 +281,26 @@ function el(tag, className, text) {
   return node;
 }
 
+// Visitors from the EEA, Switzerland and the UK can't use the live model. The server marks the
+// page, and this shows a recorded answer in the same layout instead.
+async function showRecordedExample() {
+  $("#region-note").hidden = false;
+  $("#intro")?.remove();
+  try {
+    const res = await fetch("/static/example.json");
+    if (!res.ok) return;
+    const example = await res.json();
+    const message = $("#message-template").content.firstElementChild.cloneNode(true);
+    $(".question", message).textContent = example.question;
+    $(".answer", message).innerHTML = renderAnswer(example.answer);
+    renderSources(message, example.sources, new Set(example.cited));
+    message.append(el("p", "recorded-label", `Recorded ${example.recorded}, not a live answer.`));
+    thread.append(message);
+  } catch {
+    // The note above already explains the situation.
+  }
+}
+
 loadDocuments();
-input.focus();
+if ("blocked" in document.documentElement.dataset) showRecordedExample();
+else input.focus();
