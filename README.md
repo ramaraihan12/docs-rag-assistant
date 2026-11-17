@@ -117,7 +117,7 @@ Lowest score for a right answer was 0.43 ("How much is the yearly learning budge
 
 Pull requests that touch `src/`, `samples/`, `evals/` or the dependencies are checked by [evalgate](https://github.com/ramaraihan12/evalgate): the same 40 questions in `evals/rag_cases.jsonl` run on the PR and on its base, each with its own pgvector database and Ollama, and the samples are indexed again from that commit's own code. About a quarter of the questions are in Indonesian and 6 are not answered by the documents. A question passes when the expected page or section is retrieved and the answer cites it, or, for the 6, when the answer cites nothing and says the documents don't cover it. No model grades anything. The PR gets one comment with both scores and the retrieval, citation and abstain numbers, and the "Eval gate" check fails only when the PR is worse than its base by more than noise.
 
-It runs `qwen2.5:1.5b` on a CPU runner, not the model the app normally uses, and with 40 questions only large drops show up, so a pass means no big regression and not that nothing changed. The expected pages live in the dataset, so the only way a PR changes the grading is by editing that file.
+It runs `qwen3:1.7b` on a CPU runner, not the model the app normally uses, and with 40 questions only large drops show up, so a pass means no big regression and not that nothing changed. The expected pages live in the dataset, so the only way a PR changes the grading is by editing that file.
 
 ## Notes
 
