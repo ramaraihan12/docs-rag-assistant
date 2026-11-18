@@ -131,7 +131,10 @@ async function ask(question) {
         answerEl.innerHTML = renderAnswer(answer);
       } else if (event === "done") {
         renderSources(message, sources, new Set(data.cited));
-        break; // the server may keep the stream open a moment longer to send its trace
+        // Finished for the visitor now. Keep reading until the server closes the stream: it may
+        // still be sending its trace, and cancelling the reader would abort that.
+        sendButton.disabled = false;
+        input.focus();
       } else if (event === "error") {
         throw new Error(data);
       }
@@ -149,26 +152,22 @@ async function ask(question) {
 async function* readEvents(stream) {
   const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) return;
-      buffer += value.replace(/\r\n/g, "\n");
-      let end;
-      while ((end = buffer.indexOf("\n\n")) !== -1) {
-        const raw = buffer.slice(0, end);
-        buffer = buffer.slice(end + 2);
-        let event = "message";
-        const data = [];
-        for (const line of raw.split("\n")) {
-          if (line.startsWith("event:")) event = line.slice(6).trim();
-          else if (line.startsWith("data:")) data.push(line.slice(5).replace(/^ /, ""));
-        }
-        if (data.length) yield { event, data: JSON.parse(data.join("\n")) };
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    buffer += value.replace(/\r\n/g, "\n");
+    let end;
+    while ((end = buffer.indexOf("\n\n")) !== -1) {
+      const raw = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      let event = "message";
+      const data = [];
+      for (const line of raw.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) data.push(line.slice(5).replace(/^ /, ""));
       }
+      if (data.length) yield { event, data: JSON.parse(data.join("\n")) };
     }
-  } finally {
-    reader.cancel().catch(() => {});
   }
 }
 
