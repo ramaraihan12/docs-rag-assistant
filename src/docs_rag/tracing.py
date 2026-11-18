@@ -1,10 +1,11 @@
 """Sampled, redacted tracing of /api/ask to Langfuse Cloud.
 
-Off unless both Langfuse keys are set. One POST to the ingestion endpoint, sent after the
-answer has been delivered, and every failure is swallowed.
+Off unless both Langfuse keys are set. One OTLP/HTTP POST (the legacy ingestion API is gone on
+Langfuse Cloud), sent after the answer has been delivered, and every failure is swallowed.
 """
 
 import hashlib
+import json
 import logging
 import os
 import re
@@ -42,10 +43,12 @@ def _phone(match: re.Match[str]) -> str:
 
 
 def redact(text: str, cap: int) -> str:
+    # Tokens go before phones and numbers: a hex key with a run of digits would otherwise be
+    # split by the number rule and leave pieces the token rule can no longer match.
     text = _EMAIL.sub("[email]", text)
+    text = _TOKEN.sub("[token]", text)
     text = _PHONE.sub(_phone, text)
     text = _NUMBER.sub("[number]", text)
-    text = _TOKEN.sub("[token]", text)
     return text[:cap]
 
 
@@ -71,8 +74,12 @@ def flags_for(*, error: bool, source_count: int, answer: str, seconds: float) ->
     return flags
 
 
-def _now(moment: datetime) -> str:
-    return moment.isoformat().replace("+00:00", "Z")
+def _nanos(moment: datetime) -> str:
+    return str(int(moment.timestamp() * 1000) * 1_000_000)
+
+
+def _text(key: str, value: str) -> dict:
+    return {"key": key, "value": {"stringValue": value}}
 
 
 def build_batch(
@@ -87,58 +94,57 @@ def build_batch(
     start: datetime,
     end: datetime,
 ) -> dict:
+    """One OTLP/JSON export holding a single root generation span for the ask."""
     output = {
         "answer": redact(answer, ANSWER_CAP),
         "cited": cited,
         "sources": [n if n in BUNDLED_FILES else "[uploaded]" for n in file_names],
     }
-    question = redact(question, QUESTION_CAP)
     latency_ms = int((end - start).total_seconds() * 1000)
-    metadata = {
-        "app": APP,
-        "model": model,
-        "latency_ms": latency_ms,
-        "flags": flags,
-        "sample_rate": sample_rate,
-    }
     level = "ERROR" if "error" in flags else "WARNING" if flags else "DEFAULT"
-    trace_id = str(uuid.uuid4())
+    attributes = [
+        _text("langfuse.observation.type", "generation"),
+        _text("langfuse.trace.name", f"{APP}.ask"),
+        _text("langfuse.environment", "production"),
+        _text("langfuse.release", os.environ.get("VERCEL_GIT_COMMIT_SHA") or "unknown"),
+        {
+            "key": "langfuse.trace.tags",
+            "value": {
+                "arrayValue": {
+                    "values": [
+                        {"stringValue": t} for t in [f"app:{APP}", *(f"flag:{f}" for f in flags)]
+                    ]
+                }
+            },
+        },
+        _text("langfuse.observation.level", level),
+        _text("langfuse.observation.model.name", model),
+        _text(
+            "langfuse.observation.input", json.dumps({"question": redact(question, QUESTION_CAP)})
+        ),
+        _text("langfuse.observation.output", json.dumps(output)),
+        _text("langfuse.observation.metadata.app", APP),
+        _text("langfuse.observation.metadata.model", model),
+        _text("langfuse.observation.metadata.latency_ms", str(latency_ms)),
+        _text("langfuse.observation.metadata.flags", json.dumps(flags)),
+        _text("langfuse.observation.metadata.sample_rate", str(sample_rate)),
+    ]
+    span = {
+        "traceId": uuid.uuid4().hex,
+        "spanId": uuid.uuid4().hex[:16],
+        "name": "answer",
+        "kind": 1,
+        "startTimeUnixNano": _nanos(start),
+        "endTimeUnixNano": _nanos(end),
+        "attributes": attributes,
+        "status": {"code": 2 if "error" in flags else 1},
+    }
     return {
-        "batch": [
+        "resourceSpans": [
             {
-                "id": str(uuid.uuid4()),
-                "type": "trace-create",
-                "timestamp": _now(end),
-                "body": {
-                    "id": trace_id,
-                    "timestamp": _now(start),
-                    "name": f"{APP}.ask",
-                    "environment": "production",
-                    "release": os.environ.get("VERCEL_GIT_COMMIT_SHA") or "unknown",
-                    "input": {"question": question},
-                    "output": output,
-                    "tags": [f"app:{APP}", *(f"flag:{f}" for f in flags)],
-                    "metadata": metadata,
-                },
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "type": "generation-create",
-                "timestamp": _now(end),
-                "body": {
-                    "id": str(uuid.uuid4()),
-                    "traceId": trace_id,
-                    "name": "answer",
-                    "environment": "production",
-                    "startTime": _now(start),
-                    "endTime": _now(end),
-                    "model": model,
-                    "input": {"question": question},
-                    "output": output,
-                    "level": level,
-                    "metadata": metadata,
-                },
-            },
+                "resource": {"attributes": [_text("service.name", APP)]},
+                "scopeSpans": [{"scope": {"name": APP}, "spans": [span]}],
+            }
         ]
     }
 
@@ -180,8 +186,13 @@ async def send_trace(
             settings.langfuse_public_key.get_secret_value(),
             settings.langfuse_secret_key.get_secret_value(),
         )
-        url = settings.langfuse_host.rstrip("/") + "/api/public/ingestion"
+        url = settings.langfuse_host.rstrip("/") + "/api/public/otel/v1/traces"
         async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
-            await client.post(url, json=payload, auth=auth)
+            resp = await client.post(
+                url, json=payload, auth=auth, headers={"x-langfuse-ingestion-version": "4"}
+            )
+        if not 200 <= resp.status_code < 300:
+            # Status only: the body could echo the payload.
+            log.warning("trace rejected: status %s", resp.status_code)
     except Exception as exc:
         log.warning("trace not sent: %s", type(exc).__name__)

@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
@@ -13,6 +14,15 @@ from docs_rag.config import Settings
 def settings(**kw) -> Settings:
     base = {"langfuse_public_key": SecretStr("pk"), "langfuse_secret_key": SecretStr("sk")}
     return Settings(**{**base, "trace_sample_rate": 1.0, **kw})
+
+
+def ok_post(status: int = 200) -> AsyncMock:
+    return AsyncMock(return_value=httpx.Response(status))
+
+
+def attrs(kwargs) -> dict:
+    span = kwargs["json"]["resourceSpans"][0]["scopeSpans"][0]["spans"][0]
+    return {a["key"]: a["value"] for a in span["attributes"]}
 
 
 def run_send(s: Settings, **kw):
@@ -38,6 +48,11 @@ def test_redaction_order_and_caps():
     assert len(tracing.redact("word " * 1000, 2000)) == 2000
 
 
+@pytest.mark.parametrize("key", ["3f9a8b7c1234567d9e0f1a2b3c4d5e6f", "a1b2c3d4e5" * 4])
+def test_hex_key_with_digit_run_is_one_token(key):
+    assert tracing.redact(f"key {key} end", 500) == "key [token] end"
+
+
 def test_short_numbers_survive():
     assert tracing.redact("12 days in 2026, page 3", 500) == "12 days in 2026, page 3"
 
@@ -60,40 +75,69 @@ def test_flags():
 
 @pytest.mark.asyncio
 async def test_payload_shape(monkeypatch):
-    post = AsyncMock()
+    post = ok_post()
     monkeypatch.setattr(httpx.AsyncClient, "post", post)
     monkeypatch.setenv("VERCEL_GIT_COMMIT_SHA", "abc123")
     await run_send(settings(), answer="No cite, mail me@x.io", source_count=2)
 
     (url,), kwargs = post.call_args
-    assert url == "https://cloud.langfuse.com/api/public/ingestion"
+    assert url == "https://cloud.langfuse.com/api/public/otel/v1/traces"
     assert kwargs["auth"] == ("pk", "sk")
-    trace, gen = kwargs["json"]["batch"]
-    assert trace["type"] == "trace-create" and gen["type"] == "generation-create"
-    assert trace["id"] != gen["id"]
-    tb, gb = trace["body"], gen["body"]
-    assert tb["name"] == "docs-rag.ask" and tb["release"] == "abc123"
-    assert tb["tags"] == ["app:docs-rag", "flag:no_citation"]
-    assert tb["metadata"]["flags"] == ["no_citation"] and tb["metadata"]["sample_rate"] == 1.0
-    assert gb["traceId"] == tb["id"] and gb["level"] == "WARNING"
-    assert gb["output"] == tb["output"] and "[email]" in tb["output"]["answer"]
-    assert tb["output"]["sources"] == ["kabut-labs-employee-handbook.pdf", "[uploaded]"]
-    assert "text" not in str(tb["output"]["sources"])
+    assert kwargs["headers"] == {"x-langfuse-ingestion-version": "4"}
+    json.dumps(kwargs["json"])
+    spans = kwargs["json"]["resourceSpans"][0]["scopeSpans"][0]["spans"]
+    assert len(spans) == 1
+    span = spans[0]
+    assert len(span["traceId"]) == 32 and len(span["spanId"]) == 16
+    assert int(span["endTimeUnixNano"]) > int(span["startTimeUnixNano"])
+    a = attrs(kwargs)
+    assert a["langfuse.trace.name"] == {"stringValue": "docs-rag.ask"}
+    assert a["langfuse.environment"] == {"stringValue": "production"}
+    assert a["langfuse.release"] == {"stringValue": "abc123"}
+    assert a["langfuse.observation.type"] == {"stringValue": "generation"}
+    assert a["langfuse.observation.level"] == {"stringValue": "WARNING"}
+    tags = [t["stringValue"] for t in a["langfuse.trace.tags"]["arrayValue"]["values"]]
+    assert tags == ["app:docs-rag", "flag:no_citation"]
+    output = json.loads(a["langfuse.observation.output"]["stringValue"])
+    assert "[email]" in output["answer"]
+    assert output["sources"] == ["kabut-labs-employee-handbook.pdf", "[uploaded]"]
+    assert json.loads(a["langfuse.observation.input"]["stringValue"]) == {
+        "question": "How many leave days?"
+    }
+    assert json.loads(a["langfuse.observation.metadata.flags"]["stringValue"]) == ["no_citation"]
+    assert a["langfuse.observation.metadata.sample_rate"] == {"stringValue": "1.0"}
 
 
 @pytest.mark.asyncio
 async def test_levels(monkeypatch):
-    post = AsyncMock()
+    post = ok_post()
     monkeypatch.setattr(httpx.AsyncClient, "post", post)
     await run_send(settings())
-    assert post.call_args.kwargs["json"]["batch"][1]["body"]["level"] == "DEFAULT"
+    assert attrs(post.call_args.kwargs)["langfuse.observation.level"] == {"stringValue": "DEFAULT"}
     await run_send(settings(), error=True)
-    assert post.call_args.kwargs["json"]["batch"][1]["body"]["level"] == "ERROR"
+    assert attrs(post.call_args.kwargs)["langfuse.observation.level"] == {"stringValue": "ERROR"}
+
+
+@pytest.mark.asyncio
+async def test_rejected_response_logs_status_only(monkeypatch, caplog):
+    body = httpx.Response(400, text="secret answer text")
+    monkeypatch.setattr(httpx.AsyncClient, "post", AsyncMock(return_value=body))
+    with caplog.at_level(logging.WARNING):
+        await run_send(settings())
+    assert "400" in caplog.text and "secret" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_ok_response_logs_nothing(monkeypatch, caplog):
+    monkeypatch.setattr(httpx.AsyncClient, "post", ok_post(200))
+    with caplog.at_level(logging.WARNING):
+        await run_send(settings())
+    assert caplog.text == ""
 
 
 @pytest.mark.asyncio
 async def test_off_without_keys(monkeypatch):
-    post = AsyncMock()
+    post = ok_post()
     monkeypatch.setattr(httpx.AsyncClient, "post", post)
     await run_send(
         Settings(trace_sample_rate=1.0, langfuse_public_key=None, langfuse_secret_key=None)
@@ -104,7 +148,7 @@ async def test_off_without_keys(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_unsampled_sends_nothing(monkeypatch):
-    post = AsyncMock()
+    post = ok_post()
     monkeypatch.setattr(httpx.AsyncClient, "post", post)
     await run_send(settings(trace_sample_rate=0.0))
     post.assert_not_called()
@@ -128,7 +172,7 @@ def test_ask_sends_after_answer(monkeypatch, handbook):
 
     kb = make_kb()
     kb.ingest_file(handbook)
-    post = AsyncMock()
+    post = ok_post()
     monkeypatch.setattr(httpx.AsyncClient, "post", post)
     with TestClient(create_app(kb=kb, settings=settings())) as client:
         resp = client.post("/api/ask", json={"question": "annual leave"})
