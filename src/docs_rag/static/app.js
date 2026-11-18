@@ -131,6 +131,10 @@ async function ask(question) {
         answerEl.innerHTML = renderAnswer(answer);
       } else if (event === "done") {
         renderSources(message, sources, new Set(data.cited));
+        // Finished for the visitor now. Keep reading until the server closes the stream: it may
+        // still be sending its trace, and cancelling the reader would abort that.
+        sendButton.disabled = false;
+        input.focus();
       } else if (event === "error") {
         throw new Error(data);
       }

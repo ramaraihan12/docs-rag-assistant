@@ -244,9 +244,7 @@ def test_ask_sends_after_answer(monkeypatch, handbook):
     assert post.await_count == 1
 
 
-def test_ask_survives_task_failure(monkeypatch, handbook):
-    import asyncio
-
+def ask_client(handbook):
     from fastapi.testclient import TestClient
 
     from docs_rag.api import create_app
@@ -254,12 +252,49 @@ def test_ask_survives_task_failure(monkeypatch, handbook):
 
     kb = make_kb()
     kb.ingest_file(handbook)
+    return TestClient(create_app(kb=kb, settings=settings()))
 
-    def boom(coro, **kw):
-        coro.close()
-        raise RuntimeError("no loop")
 
-    monkeypatch.setattr(asyncio, "create_task", boom)
-    with TestClient(create_app(kb=kb, settings=settings())) as client:
+def test_ask_awaits_trace_after_final_event(monkeypatch, handbook):
+    import docs_rag.api as api
+
+    seen = []
+
+    async def fake_send(*args, **kw):
+        seen.append(kw)
+
+    monkeypatch.setattr(api, "send_trace", fake_send)
+    with ask_client(handbook) as client:
         resp = client.post("/api/ask", json={"question": "annual leave"})
     assert "event: done" in resp.text
+    # Finished before the response closed, not left as a background task.
+    assert len(seen) == 1 and seen[0]["error"] is False
+
+
+def test_ask_slow_trace_is_cut_off(monkeypatch, handbook, caplog):
+    import asyncio
+
+    import docs_rag.api as api
+
+    async def slow(*args, **kw):
+        await asyncio.sleep(30)
+
+    monkeypatch.setattr(api, "send_trace", slow)
+    monkeypatch.setattr(api, "TRACE_DEADLINE", 0.05)
+    with caplog.at_level(logging.WARNING), ask_client(handbook) as client:
+        resp = client.post("/api/ask", json={"question": "annual leave"})
+    assert "event: done" in resp.text
+    assert "TimeoutError" in caplog.text
+
+
+def test_ask_survives_trace_failure(monkeypatch, handbook, caplog):
+    import docs_rag.api as api
+
+    async def boom(*args, **kw):
+        raise RuntimeError("secret detail")
+
+    monkeypatch.setattr(api, "send_trace", boom)
+    with caplog.at_level(logging.WARNING), ask_client(handbook) as client:
+        resp = client.post("/api/ask", json={"question": "annual leave"})
+    assert "event: done" in resp.text
+    assert "RuntimeError" in caplog.text and "secret detail" not in caplog.text
