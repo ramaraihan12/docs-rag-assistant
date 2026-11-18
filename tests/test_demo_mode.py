@@ -38,7 +38,7 @@ def demo_kb(handbook: Path) -> KnowledgeBase:
 
 @pytest.fixture
 def client(demo_kb: KnowledgeBase, quota: Quota) -> Iterator[TestClient]:
-    settings = Settings(demo_mode=True, demo_max_question_chars=100)
+    settings = Settings(_env_file=None, demo_mode=True, demo_max_question_chars=100)
     with TestClient(create_app(kb=demo_kb, settings=settings, quota=quota)) as client:
         yield client
 
@@ -137,7 +137,9 @@ def test_a_malformed_body_doesnt_spend_the_shared_budget(client: TestClient, eng
 def test_no_answer_doesnt_suggest_uploading(handbook: Path, quota: Quota):
     kb = make_kb(read_only=True)
     kb.ingest_file(handbook)
-    with TestClient(create_app(kb=kb, settings=Settings(demo_mode=True), quota=quota)) as client:
+    with TestClient(
+        create_app(kb=kb, settings=Settings(_env_file=None, demo_mode=True), quota=quota)
+    ) as client:
         events = parse_sse(ask(client, "zebra volcano?").text)
 
     answer = "".join(data for name, data in events if name == "token")
@@ -159,7 +161,9 @@ class BusyLLM(MockLLM):
 def test_a_busy_model_gets_a_readable_message(handbook: Path, quota: Quota, code: int):
     kb = make_kb(BusyLLM(max_tokens=code))
     kb.ingest_file(handbook)
-    with TestClient(create_app(kb=kb, settings=Settings(demo_mode=True), quota=quota)) as client:
+    with TestClient(
+        create_app(kb=kb, settings=Settings(_env_file=None, demo_mode=True), quota=quota)
+    ) as client:
         events = parse_sse(ask(client).text)
 
     assert events[-1] == ("error", DEMO_MODEL_BUSY)
@@ -171,7 +175,7 @@ def test_the_demo_runs_without_the_file_parsers():
 import sys
 from docs_rag.api import create_app
 from docs_rag.config import Settings
-create_app(settings=Settings(demo_mode=True))
+create_app(settings=Settings(_env_file=None, demo_mode=True))
 loaded = {"docx", "pypdf", "lxml", "docs_rag.loaders"} & set(sys.modules)
 sys.exit(f"imported {sorted(loaded)}" if loaded else 0)
 """
@@ -183,7 +187,7 @@ sys.exit(f"imported {sorted(loaded)}" if loaded else 0)
 class TestFlagOff:
     @pytest.fixture
     def client(self, kb: KnowledgeBase) -> Iterator[TestClient]:
-        with TestClient(create_app(kb=kb, settings=Settings())) as client:
+        with TestClient(create_app(kb=kb, settings=Settings(_env_file=None))) as client:
             yield client
 
     def test_page_is_unchanged(self, client: TestClient):
@@ -197,7 +201,7 @@ class TestFlagOff:
     def test_a_busy_model_keeps_the_generic_message(self, handbook: Path):
         kb = make_kb(BusyLLM(max_tokens=503))
         kb.ingest_file(handbook)
-        with TestClient(create_app(kb=kb, settings=Settings())) as client:
+        with TestClient(create_app(kb=kb, settings=Settings(_env_file=None))) as client:
             events = parse_sse(ask(client).text)
 
         assert events[-1][0] == "error"

@@ -13,7 +13,7 @@ from docs_rag.config import Settings
 
 def settings(**kw) -> Settings:
     base = {"langfuse_public_key": SecretStr("pk"), "langfuse_secret_key": SecretStr("sk")}
-    return Settings(**{**base, "trace_sample_rate": 1.0, **kw})
+    return Settings(_env_file=None, **{**base, "trace_sample_rate": 1.0, **kw})
 
 
 def ok_post(status: int = 200) -> AsyncMock:
@@ -67,10 +67,49 @@ def test_sampling_is_deterministic_and_normalised():
 
 def test_flags():
     f = tracing.flags_for
-    assert f(error=False, source_count=0, answer="x", seconds=1) == ["no_sources"]
-    assert f(error=False, source_count=2, answer="no cite", seconds=1) == ["no_citation"]
-    assert f(error=False, source_count=2, answer="ok [1]", seconds=1) == []
-    assert f(error=True, source_count=2, answer="", seconds=16) == ["error", "slow"]
+    assert f(error=False, source_count=0, cited=[], seconds=1) == ["no_sources"]
+    assert f(error=False, source_count=2, cited=[], seconds=1) == ["no_citation"]
+    assert f(error=False, source_count=2, cited=[1], seconds=1) == []
+    assert f(error=True, source_count=2, cited=[], seconds=16) == ["error", "slow"]
+
+
+def test_phone_rule():
+    r = tracing.redact
+    assert r("call +62 812-3456-7890", 500) == "call [phone]"
+    assert r("call 0812" + "‐" + "3456" + "–" + "7890", 500)  # noqa: RUF001 == "call [phone]"
+    assert "[phone]" in r("call (021) 555-1234", 500)
+    assert r("on 2026-11-18 10:30 sharp", 500) == "on 2026-11-18 10:30 sharp"
+    assert r("total Rp 1.500.000.000 now", 500) == "total Rp 1.500.000.000 now"
+    assert r("total 1 500 000 000", 500) == "total 1 500 000 000"
+
+
+def test_redacts_slice_before_cut():
+    # A phone straddling the cap is redacted whole, never left as a partial number.
+    text = "x" * 497 + " 0812-3456-7890"
+    out = tracing.redact(text, 500)
+    assert "0812" not in out and "78" not in out
+
+
+def test_invalid_sample_rate_falls_back(monkeypatch):
+    monkeypatch.setenv("TRACE_SAMPLE_RATE", "lots")
+    assert Settings(_env_file=None).trace_sample_rate == 0.25
+    assert Settings(_env_file=None, trace_sample_rate=7).trace_sample_rate == 0.25
+    assert Settings(_env_file=None, trace_sample_rate=0.5).trace_sample_rate == 0.5
+
+
+@pytest.mark.asyncio
+async def test_total_deadline(monkeypatch, caplog):
+    import asyncio
+
+    monkeypatch.setattr(tracing, "TIMEOUT_SECONDS", 0.05)
+
+    async def slow(*a, **k):
+        await asyncio.sleep(5)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", slow)
+    with caplog.at_level(logging.WARNING):
+        await run_send(settings())
+    assert "TimeoutError" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -78,7 +117,7 @@ async def test_payload_shape(monkeypatch):
     post = ok_post()
     monkeypatch.setattr(httpx.AsyncClient, "post", post)
     monkeypatch.setenv("VERCEL_GIT_COMMIT_SHA", "abc123")
-    await run_send(settings(), answer="No cite, mail me@x.io", source_count=2)
+    await run_send(settings(), answer="No cite, mail me@x.io", cited=[], source_count=2)
 
     (url,), kwargs = post.call_args
     assert url == "https://cloud.langfuse.com/api/public/otel/v1/traces"
@@ -140,7 +179,12 @@ async def test_off_without_keys(monkeypatch):
     post = ok_post()
     monkeypatch.setattr(httpx.AsyncClient, "post", post)
     await run_send(
-        Settings(trace_sample_rate=1.0, langfuse_public_key=None, langfuse_secret_key=None)
+        Settings(
+            _env_file=None,
+            trace_sample_rate=1.0,
+            langfuse_public_key=None,
+            langfuse_secret_key=None,
+        )
     )
     await run_send(settings(langfuse_secret_key=None))
     post.assert_not_called()
@@ -178,3 +222,24 @@ def test_ask_sends_after_answer(monkeypatch, handbook):
         resp = client.post("/api/ask", json={"question": "annual leave"})
     assert "event: done" in resp.text
     assert post.await_count == 1
+
+
+def test_ask_survives_task_failure(monkeypatch, handbook):
+    import asyncio
+
+    from fastapi.testclient import TestClient
+
+    from docs_rag.api import create_app
+    from tests.conftest import make_kb
+
+    kb = make_kb()
+    kb.ingest_file(handbook)
+
+    def boom(coro, **kw):
+        coro.close()
+        raise RuntimeError("no loop")
+
+    monkeypatch.setattr(asyncio, "create_task", boom)
+    with TestClient(create_app(kb=kb, settings=settings())) as client:
+        resp = client.post("/api/ask", json={"question": "annual leave"})
+    assert "event: done" in resp.text

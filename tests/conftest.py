@@ -1,5 +1,6 @@
 import hashlib
 import math
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -82,6 +83,13 @@ def make_kb(
         similarity_cutoff=0.2,
         read_only=read_only,
     )
+
+
+@pytest.fixture(autouse=True)
+def no_real_traces(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in list(os.environ):
+        if name.startswith("LANGFUSE_") or name == "TRACE_SAMPLE_RATE":
+            monkeypatch.delenv(name)
 
 
 @pytest.fixture

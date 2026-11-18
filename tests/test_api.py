@@ -15,7 +15,7 @@ from docs_rag.knowledge import KnowledgeBase
 
 @pytest.fixture
 def client(kb: KnowledgeBase) -> Iterator[TestClient]:
-    app = create_app(kb=kb, settings=Settings(max_upload_mb=1))
+    app = create_app(kb=kb, settings=Settings(_env_file=None, max_upload_mb=1))
     with TestClient(app) as client:
         yield client
 
@@ -121,7 +121,7 @@ def test_ask_streams_sources_tokens_then_done(client: TestClient, handbook: Path
 def test_ask_reports_cited_sources(kb_with_llm, handbook: Path):
     # Without max_tokens MockLLM echoes the prompt back, and the prompt lists [1] to [3].
     kb = kb_with_llm(MockLLM())
-    with TestClient(create_app(kb=kb, settings=Settings())) as client:
+    with TestClient(create_app(kb=kb, settings=Settings(_env_file=None))) as client:
         upload(client, handbook)
         events = parse_sse(client.post("/api/ask", json={"question": "annual leave"}).text)
 
@@ -138,7 +138,7 @@ def test_ask_ignores_citations_without_a_source(kb_with_llm, handbook: Path):
             return gen()
 
     kb = kb_with_llm(MadeUpCitationLLM())
-    with TestClient(create_app(kb=kb, settings=Settings())) as client:
+    with TestClient(create_app(kb=kb, settings=Settings(_env_file=None))) as client:
         upload(client, handbook)
         events = parse_sse(client.post("/api/ask", json={"question": "annual leave"}).text)
 
@@ -161,7 +161,7 @@ def test_ask_turns_llm_failure_into_error_event(kb_with_llm, handbook: Path):
             raise ConnectionError("ollama is down")
 
     kb = kb_with_llm(BrokenLLM())
-    with TestClient(create_app(kb=kb, settings=Settings())) as client:
+    with TestClient(create_app(kb=kb, settings=Settings(_env_file=None))) as client:
         upload(client, handbook)
         events = parse_sse(client.post("/api/ask", json={"question": "annual leave"}).text)
 
@@ -175,7 +175,7 @@ def test_ask_names_a_missing_model(kb_with_llm, handbook: Path):
             raise ollama.ResponseError("model 'qwen3.5:9b' not found", 404)
 
     kb = kb_with_llm(NotPulledLLM())
-    with TestClient(create_app(kb=kb, settings=Settings())) as client:
+    with TestClient(create_app(kb=kb, settings=Settings(_env_file=None))) as client:
         upload(client, handbook)
         events = parse_sse(client.post("/api/ask", json={"question": "annual leave"}).text)
 
@@ -191,7 +191,7 @@ def test_upload_reports_a_missing_embedding_model(
     failing_embedding.error = ollama.ResponseError(
         '{"error":"model \\"nomic-embed-text\\" not found, try pulling it first"}', 404
     )
-    with TestClient(create_app(kb=flaky_kb, settings=Settings())) as client:
+    with TestClient(create_app(kb=flaky_kb, settings=Settings(_env_file=None))) as client:
         res = upload(client, handbook)
 
     assert res.status_code == 502
@@ -202,7 +202,7 @@ def test_upload_reports_a_provider_timeout(
     flaky_kb: KnowledgeBase, failing_embedding, handbook: Path
 ):
     failing_embedding.error = httpx.ReadTimeout("timed out")
-    with TestClient(create_app(kb=flaky_kb, settings=Settings())) as client:
+    with TestClient(create_app(kb=flaky_kb, settings=Settings(_env_file=None))) as client:
         res = upload(client, handbook)
 
     assert res.status_code == 504

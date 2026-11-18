@@ -4,6 +4,7 @@ Off unless both Langfuse keys are set. One OTLP/HTTP POST (the legacy ingestion 
 Langfuse Cloud), sent after the answer has been delivered, and every failure is swallowed.
 """
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -32,7 +33,9 @@ BUNDLED_FILES = frozenset(
 )
 
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
-_PHONE = re.compile(r"\+?\d[\d\s().-]{6,}\d")
+# Only numbers that start with + or 0 count as phones, so dates, times and long amounts that
+# begin with another digit are left alone. U+2010 to U+2015 are the unicode hyphens.
+_PHONE = re.compile(r"(?<![\w.])[+0]\d[\d\s().\u2010-\u2015-]{6,}\d")
 _NUMBER = re.compile(r"\d{6,}")
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{24,}")
 
@@ -45,6 +48,9 @@ def _phone(match: re.Match[str]) -> str:
 def redact(text: str, cap: int) -> str:
     # Tokens go before phones and numbers: a hex key with a run of digits would otherwise be
     # split by the number rule and leave pieces the token rule can no longer match.
+    # Redact a bounded slice, then cut: the cut can't leave half a number behind and the regexes
+    # never run over a huge string.
+    text = text[: cap * 2]
     text = _EMAIL.sub("[email]", text)
     text = _TOKEN.sub("[token]", text)
     text = _PHONE.sub(_phone, text)
@@ -61,13 +67,13 @@ def enabled(settings: Settings) -> bool:
     return bool(settings.langfuse_public_key and settings.langfuse_secret_key)
 
 
-def flags_for(*, error: bool, source_count: int, answer: str, seconds: float) -> list[str]:
+def flags_for(*, error: bool, source_count: int, cited: list[int], seconds: float) -> list[str]:
     flags = []
     if error:
         flags.append("error")
     elif source_count == 0:
         flags.append("no_sources")
-    elif not re.search(r"\[\d+\]", answer):
+    elif not cited:
         flags.append("no_citation")
     if seconds > SLOW_SECONDS:
         flags.append("slow")
@@ -168,7 +174,7 @@ async def send_trace(
         flags = flags_for(
             error=error,
             source_count=source_count,
-            answer=answer,
+            cited=cited,
             seconds=(end - start).total_seconds(),
         )
         payload = build_batch(
@@ -187,10 +193,15 @@ async def send_trace(
             settings.langfuse_secret_key.get_secret_value(),
         )
         url = settings.langfuse_host.rstrip("/") + "/api/public/otel/v1/traces"
-        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
-            resp = await client.post(
-                url, json=payload, auth=auth, headers={"x-langfuse-ingestion-version": "4"}
-            )
+
+        async def post() -> httpx.Response:
+            async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+                return await client.post(
+                    url, json=payload, auth=auth, headers={"x-langfuse-ingestion-version": "4"}
+                )
+
+        # The httpx timeout is per phase; this is the real total deadline.
+        resp = await asyncio.wait_for(post(), TIMEOUT_SECONDS)
         if not 200 <= resp.status_code < 300:
             # Status only: the body could echo the payload.
             log.warning("trace rejected: status %s", resp.status_code)

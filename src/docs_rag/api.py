@@ -255,19 +255,22 @@ def create_app(
         finally:
             # After the last event, so tracing can't hold up the answer. It runs as its own
             # task and swallows its own errors.
-            task = asyncio.create_task(
-                send_trace(
-                    settings,
-                    question=body.question,
-                    answer="".join(answer),
-                    cited=cited,
-                    file_names=file_names,
-                    source_count=source_count,
-                    error=failed,
-                    start=start,
+            try:
+                task = asyncio.create_task(
+                    send_trace(
+                        settings,
+                        question=body.question,
+                        answer="".join(answer),
+                        cited=cited,
+                        file_names=file_names,
+                        source_count=source_count,
+                        error=failed,
+                        start=start,
+                    )
                 )
-            )
-            _trace_tasks.add(task)
-            task.add_done_callback(_trace_tasks.discard)
+                _trace_tasks.add(task)
+                task.add_done_callback(_trace_tasks.discard)
+            except Exception as exc:
+                log.warning("trace not started: %s", type(exc).__name__)
 
     return app

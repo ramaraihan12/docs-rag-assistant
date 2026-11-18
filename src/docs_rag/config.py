@@ -1,7 +1,8 @@
+import math
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LLMProvider = Literal["ollama", "openai", "gemini", "anthropic"]
@@ -52,6 +53,16 @@ class Settings(BaseSettings):
     langfuse_secret_key: SecretStr | None = None
     langfuse_host: str = "https://cloud.langfuse.com"
     trace_sample_rate: float = 0.25
+
+    @field_validator("trace_sample_rate", mode="before")
+    @classmethod
+    def _sane_rate(cls, value: object) -> float:
+        # A typo in this optional setting must not stop the app from starting.
+        try:
+            rate = float(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return 0.25
+        return rate if math.isfinite(rate) and 0.0 <= rate <= 1.0 else 0.25
 
 
 @lru_cache
