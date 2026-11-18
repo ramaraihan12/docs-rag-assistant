@@ -35,7 +35,7 @@ BUNDLED_FILES = frozenset(
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 # Only numbers that start with + or 0 count as phones, so dates, times and long amounts that
 # begin with another digit are left alone. U+2010 to U+2015 are the unicode hyphens.
-_PHONE = re.compile(r"(?<![\w.])[+0]\d[\d\s().\u2010-\u2015-]{6,}\d")
+_PHONE = re.compile(r"(?<![\d+])(?<!\d[.,])[+0]\d[\d\s().\u2010-\u2015-]{6,}\d")
 _NUMBER = re.compile(r"\d{6,}")
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{24,}")
 

@@ -76,7 +76,13 @@ def test_flags():
 def test_phone_rule():
     r = tracing.redact
     assert r("call +62 812-3456-7890", 500) == "call [phone]"
-    assert r("call 0812" + "‐" + "3456" + "–" + "7890", 500)  # noqa: RUF001 == "call [phone]"
+    assert r("call 0812" + "‐" + "3456" + "–" + "7890", 500) == "call [phone]"  # noqa: RUF001
+    assert r("HP0812-3456-7890", 500) == "HP[phone]"
+    assert r("WA+62 812 3456 7890", 500) == "WA[phone]"
+    assert r("Telp.0812-3456-7890", 500) == "Telp.[phone]"
+    assert r("Rp 1.050.000.000", 500) == "Rp 1.050.000.000"
+    assert r("Rp 1,050,000,000", 500) == "Rp 1,050,000,000"
+    assert r("2026-11-18 10:30", 500) == "2026-11-18 10:30"
     assert "[phone]" in r("call (021) 555-1234", 500)
     assert r("on 2026-11-18 10:30 sharp", 500) == "on 2026-11-18 10:30 sharp"
     assert r("total Rp 1.500.000.000 now", 500) == "total Rp 1.500.000.000 now"
