@@ -36,6 +36,11 @@ _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 # Only numbers that start with + or 0 count as phones, so dates, times and long amounts that
 # begin with another digit are left alone. U+2010 to U+2015 are the unicode hyphens.
 _PHONE = re.compile(r"(?<![\d+])(?<!\d[.,])[+0]\d[\d\s().\u2010-\u2015-]{6,}\d")
+# Digit groups with no leading + or 0 (a card, a US phone). The lookahead also rejects ':' so
+# "2026-11-18 10:30" is not joined with the hour, the lookbehind so "1 500 000 000" is not cut.
+_GROUPED = re.compile(
+    r"(?<![\d.,])(?<!\d[ \u2010-\u2015-])\d{2,4}(?:[ \u2010-\u2015-]\d{2,4}){2,}(?![\d.,:])"
+)
 _NUMBER = re.compile(r"\d{6,}")
 _TOKEN = re.compile(r"[A-Za-z0-9_-]{24,}")
 
@@ -43,6 +48,11 @@ _TOKEN = re.compile(r"[A-Za-z0-9_-]{24,}")
 def _phone(match: re.Match[str]) -> str:
     digits = sum(c.isdigit() for c in match.group())
     return "[phone]" if digits >= 9 else match.group()
+
+
+def _grouped(match: re.Match[str]) -> str:
+    digits = sum(c.isdigit() for c in match.group())
+    return "[number]" if digits >= 9 else match.group()
 
 
 def redact(text: str, cap: int) -> str:
@@ -54,6 +64,7 @@ def redact(text: str, cap: int) -> str:
     text = _EMAIL.sub("[email]", text)
     text = _TOKEN.sub("[token]", text)
     text = _PHONE.sub(_phone, text)
+    text = _GROUPED.sub(_grouped, text)
     text = _NUMBER.sub("[number]", text)
     return text[:cap]
 

@@ -89,6 +89,20 @@ def test_phone_rule():
     assert r("total 1 500 000 000", 500) == "total 1 500 000 000"
 
 
+def test_grouped_digits_rule():
+    r = tracing.redact
+    assert r("card 4111 1111 1111 1111", 500) == "card [number]"
+    assert r("call 415-555-0132", 500) == "call [number]"
+    for keep in [
+        "2026-11-18",
+        "on 2026-11-18 10:30",
+        "Rp 1.500.000.000",
+        "Rp 1,500,000",
+        "05.11.2026 pukul 14.30",
+    ]:
+        assert r(keep, 500) == keep
+
+
 def test_redacts_slice_before_cut():
     # A phone straddling the cap is redacted whole, never left as a partial number.
     text = "x" * 497 + " 0812-3456-7890"
