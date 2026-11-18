@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     demo_questions_per_day: int = 20
     demo_questions_all_per_day: int = 100
 
+    # Sampled, redacted tracing of /api/ask. Off unless both keys are set.
+    langfuse_public_key: SecretStr | None = None
+    langfuse_secret_key: SecretStr | None = None
+    langfuse_host: str = "https://cloud.langfuse.com"
+    trace_sample_rate: float = 0.25
+
 
 @lru_cache
 def get_settings() -> Settings:

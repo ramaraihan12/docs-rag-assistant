@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import shutil
@@ -5,6 +6,7 @@ import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -25,6 +27,7 @@ from docs_rag.knowledge import KnowledgeBase
 from docs_rag.models import AnswerDelta, IngestResult, SourcesFound
 from docs_rag.quota import Quota, client_ip
 from docs_rag.region import is_blocked, require_allowed_region
+from docs_rag.tracing import send_trace
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -34,6 +37,9 @@ DEMO_READ_ONLY = "This public demo is read-only, so uploads and deletes are turn
 DEMO_MODEL_BUSY = "Gemini's free tier is busy right now. Try again in a minute."
 
 log = logging.getLogger(__name__)
+
+# Keeps a reference to in-flight trace tasks so they aren't garbage collected.
+_trace_tasks: set[asyncio.Task] = set()
 
 
 class AskRequest(BaseModel):
@@ -207,36 +213,61 @@ def create_app(
         """
         answer: list[str] = []
         source_count = 0
+        file_names: list[str] = []
+        cited: list[int] = []
+        failed = False
+        start = datetime.now(UTC)
         try:
-            async for event in kb.astream_answer(body.question):
-                match event:
-                    case SourcesFound(sources):
-                        source_count = len(sources)
-                        data = [{**asdict(s), "location": s.location} for s in sources]
-                        yield ServerSentEvent(event="sources", data=data)
-                    case AnswerDelta(text):
-                        answer.append(text)
-                        yield ServerSentEvent(event="token", data=text)
-        except PROVIDER_ERRORS as exc:
-            # Headers are already sent, so the client can only learn about it in-band.
-            log.error("answering failed: %r", exc)
-            yield ServerSentEvent(event="error", data=provider_error_message(exc))
-            return
-        except Exception as exc:
-            log.exception("answering failed")
-            # google-genai's errors carry the HTTP status as `code`.
-            if settings.demo_mode and getattr(exc, "code", None) in (429, 503):
-                yield ServerSentEvent(event="error", data=DEMO_MODEL_BUSY)
+            try:
+                async for event in kb.astream_answer(body.question):
+                    match event:
+                        case SourcesFound(sources):
+                            source_count = len(sources)
+                            file_names = [s.file_name for s in sources]
+                            data = [{**asdict(s), "location": s.location} for s in sources]
+                            yield ServerSentEvent(event="sources", data=data)
+                        case AnswerDelta(text):
+                            answer.append(text)
+                            yield ServerSentEvent(event="token", data=text)
+            except PROVIDER_ERRORS as exc:
+                failed = True
+                # Headers are already sent, so the client can only learn about it in-band.
+                log.error("answering failed: %r", exc)
+                yield ServerSentEvent(event="error", data=provider_error_message(exc))
                 return
-            yield ServerSentEvent(
-                event="error",
-                data="Something went wrong while answering. The server log has the details.",
-            )
-            return
+            except Exception as exc:
+                failed = True
+                log.exception("answering failed")
+                # google-genai's errors carry the HTTP status as `code`.
+                if settings.demo_mode and getattr(exc, "code", None) in (429, 503):
+                    yield ServerSentEvent(event="error", data=DEMO_MODEL_BUSY)
+                    return
+                yield ServerSentEvent(
+                    event="error",
+                    data="Something went wrong while answering. The server log has the details.",
+                )
+                return
 
-        # Small models sometimes cite a number that was never in the prompt.
-        numbers = {int(n) for n in re.findall(r"\[(\d+)\]", "".join(answer))}
-        cited = sorted(n for n in numbers if 1 <= n <= source_count)
-        yield ServerSentEvent(event="done", data={"cited": cited})
+            # Small models sometimes cite a number that was never in the prompt.
+            numbers = {int(n) for n in re.findall(r"\[(\d+)\]", "".join(answer))}
+            cited = sorted(n for n in numbers if 1 <= n <= source_count)
+            yield ServerSentEvent(event="done", data={"cited": cited})
+        finally:
+            # After the last event, so tracing can't hold up the answer. It runs as its own
+            # task and swallows its own errors.
+            task = asyncio.create_task(
+                send_trace(
+                    settings,
+                    question=body.question,
+                    answer="".join(answer),
+                    cited=cited,
+                    file_names=file_names,
+                    source_count=source_count,
+                    error=failed,
+                    start=start,
+                )
+            )
+            _trace_tasks.add(task)
+            task.add_done_callback(_trace_tasks.discard)
 
     return app
