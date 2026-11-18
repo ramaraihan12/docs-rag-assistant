@@ -113,6 +113,12 @@ It ingests the samples into its own `eval_chunks` table and only calls the embed
 
 Lowest score for a right answer was 0.43 ("How much is the yearly learning budget?"), highest for an off-topic question 0.31 (a fried rice recipe in Indonesian). That gap is where the 0.4 cutoff comes from. The script prints the full per-question table.
 
+## Eval gate
+
+Pull requests that touch `src/`, `samples/`, `evals/` or the dependencies are checked by [evalgate](https://github.com/ramaraihan12/evalgate): the same 40 questions in `evals/rag_cases.jsonl` run on the PR and on its base, each with its own pgvector database and Ollama, and the samples are indexed again from that commit's own code. About a quarter of the questions are in Indonesian and 6 are not answered by the documents. A question passes when the expected page or section is retrieved and the answer cites it, or, for the 6, when the answer says the documents don't cover it and cites no retrieved source. No model grades anything. The PR gets one comment with both scores and the retrieval, citation and abstain numbers, and the "Eval gate" check fails only when the PR is worse than its base by more than noise.
+
+It runs `qwen3:1.7b` on a CPU runner, not the model the app normally uses, and with 40 questions only large drops show up, so a pass means no big regression and not that nothing changed. The check guards against honest regressions, not a PR written to game it: the PR's own code runs on the head side, so changes to `.github/workflows/` and `evals/` need a human review.
+
 ## Notes
 
 - The eval is small and I wrote the questions after writing the documents, so a perfect score mostly says nothing is broken. Real documents with overlapping topics will do worse, and the cutoff is tuned for this embedding model only.

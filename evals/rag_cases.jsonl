@@ -1,0 +1,40 @@
+{"id": "r01", "question": "How many days of annual leave do employees get?", "file": "kabut-labs-employee-handbook.pdf", "page": 3, "lang": "en"}
+{"id": "r02", "question": "Berapa lama masa percobaan untuk karyawan baru?", "file": "kabut-labs-employee-handbook.pdf", "page": 7, "lang": "id"}
+{"id": "r03", "question": "When is salary paid each month?", "file": "kabut-labs-employee-handbook.pdf", "page": 4, "lang": "en"}
+{"id": "r04", "question": "What should I do if my work laptop gets stolen?", "file": "kabut-labs-employee-handbook.pdf", "page": 5, "lang": "en"}
+{"id": "r05", "question": "Bolehkah saya bekerja remote dari luar negeri?", "file": "kabut-labs-employee-handbook.pdf", "page": 2, "lang": "id"}
+{"id": "r06", "question": "How much is the yearly learning budget?", "file": "kabut-labs-employee-handbook.pdf", "page": 4, "lang": "en"}
+{"id": "r07", "question": "What does a blinking red LED mean on the sensor?", "file": "tandon-sense-t2-manual.docx", "page": 5, "lang": "en"}
+{"id": "r08", "question": "Bagaimana cara memasukkan sensor ke mode pairing?", "file": "tandon-sense-t2-manual.docx", "page": 4, "lang": "id"}
+{"id": "r09", "question": "How long is the warranty on the batteries?", "file": "tandon-sense-t2-manual.docx", "page": 7, "lang": "en"}
+{"id": "r10", "question": "Bagaimana cara reset pabrik Tandon Sense?", "file": "tandon-sense-t2-manual.docx", "page": 6, "lang": "id"}
+{"id": "r11", "question": "How far must the sensor be from the highest water level?", "file": "tandon-sense-t2-manual.docx", "page": 3, "lang": "en"}
+{"id": "r12", "question": "Berapa batas biaya hotel per malam di Jakarta?", "file": "kebijakan-perjalanan-dinas.md", "section": "Akomodasi", "lang": "id"}
+{"id": "r13", "question": "What is the daily allowance for domestic business trips?", "file": "kebijakan-perjalanan-dinas.md", "section": "Uang harian", "lang": "en"}
+{"id": "r14", "question": "Kapan batas waktu mengajukan klaim biaya perjalanan?", "file": "kebijakan-perjalanan-dinas.md", "section": "Klaim penggantian biaya", "lang": "id"}
+{"id": "r15", "question": "Will the company pay for my hotel minibar?", "file": "kebijakan-perjalanan-dinas.md", "section": "Biaya yang tidak diganti", "lang": "en"}
+{"id": "r16", "question": "Should I take the train or fly from Salatiga to Jakarta?", "file": "kebijakan-perjalanan-dinas.md", "section": "Transportasi", "lang": "en"}
+{"id": "r17", "question": "Who won the 2018 FIFA World Cup?", "file": null, "lang": "en"}
+{"id": "r18", "question": "Resep nasi goreng kampung yang enak?", "file": null, "lang": "id"}
+{"id": "r19", "question": "How do I configure a Kubernetes ingress controller?", "file": null, "lang": "en"}
+{"id": "r20", "question": "What are the core hours I should be reachable?", "file": "kabut-labs-employee-handbook.pdf", "page": 2, "lang": "en"}
+{"id": "r21", "question": "How many days a week can I work remotely after probation?", "file": "kabut-labs-employee-handbook.pdf", "page": 2, "lang": "en"}
+{"id": "r22", "question": "Can I carry unused annual leave over into next year?", "file": "kabut-labs-employee-handbook.pdf", "page": 3, "lang": "en"}
+{"id": "r23", "question": "How many days of paid paternity leave do fathers get?", "file": "kabut-labs-employee-handbook.pdf", "page": 3, "lang": "en"}
+{"id": "r24", "question": "Berapa tunjangan internet untuk karyawan yang bekerja remote?", "file": "kabut-labs-employee-handbook.pdf", "page": 4, "lang": "id"}
+{"id": "r25", "question": "How long do I have to return my equipment after my last day?", "file": "kabut-labs-employee-handbook.pdf", "page": 5, "lang": "en"}
+{"id": "r26", "question": "How can I raise a concern anonymously?", "file": "kabut-labs-employee-handbook.pdf", "page": 6, "lang": "en"}
+{"id": "r27", "question": "What is the notice period if I resign during probation?", "file": "kabut-labs-employee-handbook.pdf", "page": 7, "lang": "en"}
+{"id": "r28", "question": "How often are formal performance reviews held?", "file": "kabut-labs-employee-handbook.pdf", "page": 7, "lang": "en"}
+{"id": "r29", "question": "What is the measuring range of the Tandon Sense T2?", "file": "tandon-sense-t2-manual.docx", "page": 2, "lang": "en"}
+{"id": "r30", "question": "Berapa lama baterai Tandon Sense bertahan?", "file": "tandon-sense-t2-manual.docx", "page": 2, "lang": "id"}
+{"id": "r31", "question": "Why do the readings keep jumping up and down?", "file": "tandon-sense-t2-manual.docx", "page": 6, "lang": "en"}
+{"id": "r32", "question": "How do I get a WhatsApp message when the water level is low?", "file": "tandon-sense-t2-manual.docx", "page": 5, "lang": "en"}
+{"id": "r33", "question": "My router uses one name for both bands. What should I do during setup?", "file": "tandon-sense-t2-manual.docx", "page": 4, "lang": "en"}
+{"id": "r34", "question": "How do I make a warranty claim for the T2?", "file": "tandon-sense-t2-manual.docx", "page": 7, "lang": "en"}
+{"id": "r35", "question": "Berapa persen uang muka perjalanan dinas yang boleh diminta?", "file": "kebijakan-perjalanan-dinas.md", "section": "Uang muka", "lang": "id"}
+{"id": "r36", "question": "How much does the company pay per km if I use my own car for a business trip?", "file": "kebijakan-perjalanan-dinas.md", "section": "Transportasi", "lang": "en"}
+{"id": "r37", "question": "What can I claim if I lost a receipt?", "file": "kebijakan-perjalanan-dinas.md", "section": "Klaim penggantian biaya", "lang": "en"}
+{"id": "r38", "question": "Does Kabut Labs give employees stock options?", "file": null, "lang": "en"}
+{"id": "r39", "question": "Berapa harga Tandon Sense T2?", "file": null, "lang": "id"}
+{"id": "r40", "question": "Does the company pay for visa fees on trips abroad?", "file": null, "lang": "en"}
