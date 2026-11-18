@@ -38,8 +38,7 @@ DEMO_MODEL_BUSY = "Gemini's free tier is busy right now. Try again in a minute."
 
 log = logging.getLogger(__name__)
 
-# Keeps a reference to in-flight trace tasks so they aren't garbage collected.
-_trace_tasks: set[asyncio.Task] = set()
+TRACE_DEADLINE = 2.5  # seconds the stream may stay open after the last event
 
 
 class AskRequest(BaseModel):
@@ -253,10 +252,11 @@ def create_app(
             cited = sorted(n for n in numbers if 1 <= n <= source_count)
             yield ServerSentEvent(event="done", data={"cited": cited})
         finally:
-            # After the last event, so tracing can't hold up the answer. It runs as its own
-            # task and swallows its own errors.
+            # After the last event, so the visitor already has the answer. Awaited rather than
+            # scheduled: on Vercel the instance freezes once the response ends, so a background
+            # task never runs. The deadline keeps a slow send from holding the stream open.
             try:
-                task = asyncio.create_task(
+                await asyncio.wait_for(
                     send_trace(
                         settings,
                         question=body.question,
@@ -266,11 +266,10 @@ def create_app(
                         source_count=source_count,
                         error=failed,
                         start=start,
-                    )
+                    ),
+                    TRACE_DEADLINE,
                 )
-                _trace_tasks.add(task)
-                task.add_done_callback(_trace_tasks.discard)
             except Exception as exc:
-                log.warning("trace not started: %s", type(exc).__name__)
+                log.warning("trace not sent: %s", type(exc).__name__)
 
     return app
