@@ -38,7 +38,7 @@ jobs:
   gate:
     needs: changes
     if: needs.changes.outputs.relevant == 'true'
-    uses: ramaraihan12/evalgate/.github/workflows/gate-rag.yml@v0.2.0
+    uses: ramaraihan12/evalgate/.github/workflows/gate-rag.yml@v0.2.1
     permissions:
       contents: read
       pull-requests: write
@@ -50,7 +50,7 @@ jobs:
       model_digest: 8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7
       embed_model: qwen3-embedding:0.6b
       embed_model_digest: ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d
-      evalgate_ref: v0.2.0
+      evalgate_ref: v0.2.1
 
   # The one stable name to require in branch protection.
   result:
