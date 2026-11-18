@@ -32,6 +32,7 @@ pytestmark = [
 async def pg_kb(keyword_embedding) -> AsyncIterator[KnowledgeBase]:
     table = f"test_{uuid.uuid4().hex[:8]}"
     settings = Settings(
+        _env_file=None,
         database_url=DATABASE_URL,
         embed_dim=keyword_embedding.dim,
         top_k=3,
@@ -93,6 +94,7 @@ def test_reingest_replaces_and_remove_deletes(pg_kb: KnowledgeBase, tmp_path: Pa
 def test_quota_holds_across_instances_under_concurrency():
     table = f"test_{uuid.uuid4().hex[:8]}"
     settings = Settings(
+        _env_file=None,
         database_url=DATABASE_URL,
         table_name=table,
         demo_mode=True,

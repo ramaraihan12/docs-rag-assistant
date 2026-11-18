@@ -84,6 +84,7 @@ The demo runs on Vercel's Python runtime with Neon Postgres and Gemini: `gemini-
 - The 0.4 cutoff doesn't carry over. Gemini scores everything higher, so all 3 off-topic eval questions got through it. Right answers scored 0.67 to 0.82 and the highest off-topic question 0.54, so the demo uses `SIMILARITY_CUTOFF=0.6`.
 - The free tier answers 503 "high demand" every so often, twice in about 20 calls while I was testing it. The SDK doesn't retry unless asked, so the demo tries three times and then says Gemini is busy. It doesn't retry a 429, because that means the quota is gone.
 - Above 225 MB Vercel stops bundling packages and installs them on every cold start, so `pyproject.toml` keeps the other providers and the file parsers in a `full` group. `uv sync` includes it through the dev group, and the Dockerfile asks for it by name. The samples are ingested from a normal install, which is why the demo doesn't need the parsers.
+- A sample of questions (about a quarter) goes to Langfuse Cloud so I can see where answers fail. Emails, phone numbers and long digit or token strings are replaced first, the question is cut at 500 characters, and no IP, headers or document text is sent. It only turns on when `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set, so local runs and the eval gate send nothing. `TRACE_SAMPLE_RATE` changes the share. The page tells visitors about it.
 
 ## Tests
 

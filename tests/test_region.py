@@ -51,7 +51,7 @@ def quota() -> Quota:
 
 @pytest.fixture
 def client(kb: KnowledgeBase, counter: Counter, quota: Quota) -> Iterator[TestClient]:
-    settings = Settings(demo_mode=True)
+    settings = Settings(_env_file=None, demo_mode=True)
     with TestClient(create_app(kb=kb, settings=settings, quota=quota)) as client:
         yield client
 
@@ -108,7 +108,7 @@ def test_listing_documents_still_works_when_blocked(client: TestClient):
 
 def test_uploads_are_gated_outside_demo_mode(kb: KnowledgeBase, handbook: Path):
     with (
-        TestClient(create_app(kb=kb, settings=Settings())) as client,
+        TestClient(create_app(kb=kb, settings=Settings(_env_file=None))) as client,
         handbook.open("rb") as fh,
     ):
         res = client.post(
